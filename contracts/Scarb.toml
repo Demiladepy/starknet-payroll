@@ -1,0 +1,15 @@
+[package]
+name = "privacy_payroll"
+version = "0.1.0"
+edition = "2.1.0"
+
+[dependencies]
+starknet = ">=2.7.0"
+openzeppelin_accounts = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.14.0" }
+openzeppelin_token = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.14.0" }
+
+[[lib]]
+crate-type = ["lib"]
+
+[lib]
+path = "src/lib.cairo"
