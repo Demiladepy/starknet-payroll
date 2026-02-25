@@ -205,6 +205,54 @@ export const tongoService = {
   },
 
   /**
+   * Build a withdraw call for the wallet to execute (no signer private key needed).
+   * Use when the connected wallet should sign the tx; pass wallet address as `toAddress` to withdraw to self.
+   * Returns a call in ContractCall shape for useContractWrite.
+   */
+  async getWithdrawCall(
+    tongoPrivateKey: string,
+    toAddress: string,
+    amountBaseUnits: bigint
+  ): Promise<{ contractAddress: string; entrypoint: string; calldata: (string | number | bigint)[] } | null> {
+    const lib = await loadRealTongo();
+    if (!lib?.tongo?.Account || !useRealTongo()) return null;
+    try {
+      const provider = new lib.starknet.RpcProvider({
+        nodeUrl: getNodeUrl(),
+        specVersion: "0.8",
+      });
+      const dummySigner = new lib.starknet.Account(provider, toAddress, "0x1");
+      const tongoAddress = process.env.NEXT_PUBLIC_TONGO_CONTRACT_ADDRESS!;
+      const account = new lib.tongo.Account(
+        BigInt(tongoPrivateKey.replace(/^0x/, ""), 16),
+        tongoAddress,
+        dummySigner
+      ) as { withdraw: (p: { to: string; amount: bigint }) => Promise<{ toCalldata: () => unknown }> };
+      const op = await account.withdraw({ to: toAddress, amount: amountBaseUnits });
+      const raw = op.toCalldata();
+      if (Array.isArray(raw)) {
+        const [contractAddress, entrypoint, ...calldata] = raw as (string | number | bigint)[];
+        return {
+          contractAddress: String(contractAddress),
+          entrypoint: String(entrypoint),
+          calldata: calldata ?? [],
+        };
+      }
+      if (raw && typeof raw === "object" && "contractAddress" in raw) {
+        const r = raw as { contractAddress: string; entrypoint?: string; calldata?: (string | number | bigint)[] };
+        return {
+          contractAddress: r.contractAddress,
+          entrypoint: (r as { entrypoint?: string }).entrypoint ?? "withdraw",
+          calldata: Array.isArray(r.calldata) ? r.calldata : [],
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
    * Get decrypted balance (stateDeciphered). Requires a Starknet signer – TongoAccount(privateKey, tongoAddress, signer).
    * Pass signer when you have it (e.g. from env for scripts); in-browser you typically don't have the wallet private key.
    */

@@ -1,11 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useAccount } from "@starknet-react/core";
+import { useContractWrite } from "@starknet-react/core";
 import { Button } from "@/components/ui/button";
+import { tongoService } from "@/lib/tongo";
 
 export function UnwrapFlow() {
   const [amount, setAmount] = useState("");
   const [isUnwrapping, setIsUnwrapping] = useState(false);
+  const { account } = useAccount();
+  const { writeAsync } = useContractWrite({});
   const hasRealTongo =
     typeof process !== "undefined" && !!process.env.NEXT_PUBLIC_TONGO_CONTRACT_ADDRESS;
 
@@ -15,16 +20,35 @@ export function UnwrapFlow() {
       return;
     }
 
+    const amountBaseUnits = BigInt(Math.round(parseFloat(amount) * 1e6));
+    if (amountBaseUnits <= 0n) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
     setIsUnwrapping(true);
     try {
-      // In a real implementation, this would:
-      // 1. Call unwrap_tokens on TongoWrapper contract
-      // 2. Provide decryption proof
-      // 3. Receive public USDC
-      
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      alert(`Successfully unwrapped ${amount} USDC`);
-      setAmount("");
+      if (hasRealTongo && account?.address) {
+        const storedKey = typeof localStorage !== "undefined" ? localStorage.getItem("elgamal_private_key") : null;
+        if (!storedKey) {
+          alert("Generate and save your Tongo keypair in Key Management first.");
+          setIsUnwrapping(false);
+          return;
+        }
+        const call = await tongoService.getWithdrawCall(storedKey, account.address, amountBaseUnits);
+        if (call) {
+          const result = await writeAsync({ calls: [call] });
+          const hash = result?.transaction_hash;
+          alert(hash ? `Withdraw submitted. TX: ${hash}` : "Withdraw submitted.");
+          setAmount("");
+        } else {
+          alert("Could not build withdraw call. Check RPC and Tongo config.");
+        }
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        alert(`Successfully unwrapped ${amount} USDC (demo)`);
+        setAmount("");
+      }
     } catch (error) {
       console.error("Unwrap error:", error);
       alert("Failed to unwrap tokens");
@@ -40,12 +64,11 @@ export function UnwrapFlow() {
       </p>
       {hasRealTongo ? (
         <p className="text-xs text-gray-500">
-          Real mode: wire this to Tongo `withdraw()` (needs your Tongo private key + a Starknet
-          signer). See `REAL_MODE.md`.
+          Real mode: connect wallet and use the Tongo key from Key Management. Withdraw sends to your wallet address.
         </p>
       ) : (
         <p className="text-xs text-gray-500">
-          Demo mode: set `NEXT_PUBLIC_TONGO_CONTRACT_ADDRESS` to enable real Tongo flows.
+          Demo mode: set `NEXT_PUBLIC_TONGO_CONTRACT_ADDRESS` to enable real Tongo withdraw.
         </p>
       )}
       
