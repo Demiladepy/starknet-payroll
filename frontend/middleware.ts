@@ -1,6 +1,15 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export default clerkMiddleware();
+/**
+ * Pass-through middleware. Auth is handled in ClientLayout via ClerkProvider when
+ * NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is set and @clerk/nextjs is installed.
+ * To use Clerk middleware (e.g. protected routes), install @clerk/nextjs and
+ * replace this with: export default clerkMiddleware();
+ */
+export function middleware(_req: NextRequest) {
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
