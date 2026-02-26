@@ -9,55 +9,33 @@ import { ChipiTransferSection } from "@/components/chipi-pay/ChipiTransferSectio
 export function SpendingOptions() {
   const [activeTab, setActiveTab] = useState<"unwrap" | "chipi" | "qr" | "offramp">("unwrap");
 
+  const tabs = [
+    { id: "unwrap" as const, label: "Unwrap to USDC" },
+    { id: "chipi" as const, label: "Chipi transfer" },
+    { id: "qr" as const, label: "QR payment" },
+    { id: "offramp" as const, label: "Bank transfer" },
+  ];
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Spending Options</h2>
-      
-      <div className="mb-4 border-b">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setActiveTab("unwrap")}
-            className={`px-4 py-2 ${
-              activeTab === "unwrap"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600"
-            }`}
-          >
-            Unwrap to USDC
-          </button>
-          <button
-            onClick={() => setActiveTab("chipi")}
-            className={`px-4 py-2 ${
-              activeTab === "chipi"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600"
-            }`}
-          >
-            Chipi Transfer
-          </button>
-          <button
-            onClick={() => setActiveTab("qr")}
-            className={`px-4 py-2 ${
-              activeTab === "qr"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600"
-            }`}
-          >
-            QR Payment
-          </button>
-          <button
-            onClick={() => setActiveTab("offramp")}
-            className={`px-4 py-2 ${
-              activeTab === "offramp"
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600"
-            }`}
-          >
-            Bank Transfer
-          </button>
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Spending options</h2>
+      <div className="mb-4 border-b border-[var(--border)]">
+        <div className="flex flex-wrap gap-1">
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+                activeTab === id
+                  ? "bg-[var(--section)] text-[var(--accent)] border border-[var(--border)] border-b-[var(--card)] -mb-px"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
-
       <div>
         {activeTab === "unwrap" && <UnwrapFlow />}
         {activeTab === "chipi" && <ChipiTransferSection />}

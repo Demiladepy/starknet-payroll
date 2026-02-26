@@ -14,8 +14,22 @@ Next.js frontend application for the Privacy-First Payroll System.
 
 1. Install dependencies:
 ```bash
+cd frontend
 npm install
 ```
+
+If `npm install` fails:
+
+- **ERESOLVE / starknet peer conflict:** The repo has `frontend/.npmrc` with `legacy-peer-deps=true` so a second run should succeed. If not, run:
+  ```bash
+  npm install --legacy-peer-deps
+  ```
+- **Unsupported URL Type "workspace:":** A dependency uses the `workspace:` protocol. Use **Yarn** or **pnpm** instead of npm:
+  ```bash
+  yarn install
+  # or
+  pnpm install
+  ```
 
 2. Configure environment variables:
 ```bash

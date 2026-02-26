@@ -70,43 +70,40 @@ export function SalaryView() {
   }, [account, privateKey]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Your Salary</h2>
-      
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Your salary</h2>
       <div className="space-y-4">
         {encryptedBalance ? (
-          <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded">
-            <p className="text-sm font-medium mb-2">Encrypted Balance:</p>
-            <p className="text-xs font-mono break-all">C1: {encryptedBalance.C1}</p>
-            <p className="text-xs font-mono break-all">C2: {encryptedBalance.C2}</p>
+          <div className="p-4 rounded-xl bg-[var(--section)] border border-[var(--border)]">
+            <p className="text-sm font-medium text-[var(--foreground)] mb-2">Encrypted balance</p>
+            <p className="text-xs font-mono break-all text-[var(--muted)]">C1: {encryptedBalance.C1.slice(0, 40)}…</p>
+            <p className="text-xs font-mono break-all text-[var(--muted)]">C2: {encryptedBalance.C2.slice(0, 40)}…</p>
           </div>
         ) : (
-          <p className="text-gray-500">No encrypted balance found.</p>
+          <p className="text-[var(--muted)] text-sm">No encrypted balance found.</p>
         )}
-
         {privateKey ? (
           <div>
             <Button
               onClick={handleDecrypt}
               disabled={isDecrypting || !encryptedBalance}
-              className="w-full"
+              className="w-full rounded-xl"
             >
-              {isDecrypting ? "Decrypting..." : "Decrypt Salary"}
+              {isDecrypting ? "Decrypting…" : "Decrypt salary"}
             </Button>
-
             {decryptedSalary !== null && (
-              <div className="mt-4 p-6 bg-green-50 dark:bg-green-900 rounded text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Your Salary:</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <div className="mt-4 p-6 rounded-xl bg-[var(--accent-light)] border border-[var(--accent)]/30 text-center">
+                <p className="text-sm text-[var(--muted)] mb-2">Your salary</p>
+                <p className="text-3xl font-bold text-[var(--foreground)]">
                   ${formatAmount(decryptedSalary)} USDC
                 </p>
-                <p className="text-xs text-gray-500 mt-2">Only you can see this amount</p>
+                <p className="text-xs text-[var(--muted)] mt-2">Only you can see this amount</p>
               </div>
             )}
           </div>
         ) : (
-          <p className="text-yellow-600 dark:text-yellow-400">
-            Please set up your private key in Key Management first.
+          <p className="text-sm text-[var(--muted)]">
+            Set up your private key in Key Management below to decrypt.
           </p>
         )}
       </div>

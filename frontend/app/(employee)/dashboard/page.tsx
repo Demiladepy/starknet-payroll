@@ -7,29 +7,42 @@ import { SpendingOptions } from "@/components/employee/SpendingOptions";
 import { SessionKeyManager } from "@/components/employee/SessionKeyManager";
 
 export default function EmployeeDashboard() {
-  const { account, isConnected } = useAccount();
+  const { isConnected } = useAccount();
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please Connect Your Wallet</h1>
-          <p className="text-gray-600">Connect your Starknet wallet to access your employee dashboard.</p>
+      <div className="min-h-[60vh] flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] mb-3">
+            Connect your wallet
+          </h1>
+          <p className="text-[var(--muted)] mb-6">
+            Connect your Starknet wallet to view your salary and spending options.
+          </p>
+          <p className="text-sm text-[var(--muted)]">
+            Use the wallet button in the navigation bar to connect.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Employee Portal</h1>
-        <div className="space-y-6">
-          <SalaryView />
-          <KeyManagement />
-          <SessionKeyManager />
-          <SpendingOptions />
-        </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-[var(--foreground)]">
+          Employee portal
+        </h1>
+        <p className="text-[var(--muted)] mt-1">
+          View your salary, manage keys, and spend or cash out.
+        </p>
+      </div>
+
+      <div className="space-y-8">
+        <SalaryView />
+        <KeyManagement />
+        <SessionKeyManager />
+        <SpendingOptions />
       </div>
     </div>
   );

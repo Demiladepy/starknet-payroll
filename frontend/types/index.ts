@@ -1,5 +1,6 @@
 export interface Employee {
   address: string;
+  alias?: string;
   encryptedSalaryC1: string;
   encryptedSalaryC2: string;
   publicKey: string;

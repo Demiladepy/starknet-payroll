@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./providers";
-import { ChipiProvider } from "@chipi-stack/nextjs";
+import { ClientLayout } from "./ClientLayout";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Privacy-First Payroll System",
-  description: "Starknet payroll with Tongo Protocol privacy",
+  title: "Starknet Payroll | Private Crypto Payroll on Starknet",
+  description: "Pay employees in crypto on Starknet. No intermediary. Low fees, privacy-focused, self-hosted.",
 };
 
 export default function RootLayout({
@@ -14,11 +16,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        <Providers>
-          <ChipiProvider>{children}</ChipiProvider>
-        </Providers>
+    <html lang="en" className={inter.variable}>
+      <body className="font-sans">
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );

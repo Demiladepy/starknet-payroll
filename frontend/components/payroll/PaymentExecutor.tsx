@@ -42,33 +42,30 @@ export function PaymentExecutor() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Execute Payroll</h2>
-      
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Run payroll</h2>
       <div className="space-y-4">
         <div>
-          <p className="text-sm text-gray-600 mb-2">
-            Active Employees: <span className="font-bold">{activeEmployees.length}</span>
+          <p className="text-sm text-[var(--muted)]">
+            Active employees: <span className="font-semibold text-[var(--foreground)]">{activeEmployees.length}</span>
           </p>
           {paymentSchedule && (
-            <p className="text-sm text-gray-600 mb-2">
-              Next Payment: {new Date(paymentSchedule.nextPayment * 1000).toLocaleString()}
+            <p className="text-sm text-[var(--muted)]">
+              Next payment: {new Date(paymentSchedule.nextPayment * 1000).toLocaleString()}
             </p>
           )}
         </div>
-
         <Button
           onClick={handleExecutePayroll}
           disabled={isExecuting}
-          className="w-full"
+          className="w-full rounded-xl"
         >
-          {isExecuting ? "Executing..." : hasContract ? `Execute Payroll on-chain` : "Simulate Payroll"}
+          {isExecuting ? "Executing…" : hasContract ? "Execute payroll" : "Simulate payroll"}
         </Button>
-
         {txHash && (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900 rounded">
-            <p className="text-sm font-medium text-green-800 dark:text-green-200">
-              Transaction Hash: <span className="font-mono">{txHash}</span>
+          <div className="p-4 rounded-xl bg-[var(--accent-light)] border border-[var(--accent)]/30">
+            <p className="text-sm font-medium text-[var(--foreground)]">
+              Transaction: <span className="font-mono text-xs">{txHash}</span>
             </p>
           </div>
         )}

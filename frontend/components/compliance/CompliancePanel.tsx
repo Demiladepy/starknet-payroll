@@ -53,62 +53,56 @@ export function CompliancePanel() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Compliance & Auditing</h2>
-      
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Compliance & auditing</h2>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Auditor Address</label>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Auditor address</label>
           <input
             type="text"
             value={auditorAddress}
             onChange={(e) => setAuditorAddress(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="w-full px-4 py-2 border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)] font-mono text-sm"
             placeholder="0x..."
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium mb-2">Employee Addresses (comma-separated)</label>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Employee addresses (comma-separated)</label>
           <input
             type="text"
             value={employeeAddresses}
             onChange={(e) => setEmployeeAddresses(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="w-full px-4 py-2 border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)] font-mono text-sm"
             placeholder="0x..., 0x..."
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium mb-2">Time Range Start (timestamp, optional)</label>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Time range start (optional)</label>
           <input
             type="number"
             value={timeRangeStart}
             onChange={(e) => setTimeRangeStart(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="w-full px-4 py-2 border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)]"
             placeholder="Unix timestamp"
           />
         </div>
-
         <div>
-          <label className="block text-sm font-medium mb-2">Time Range End (timestamp, optional)</label>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Time range end (optional)</label>
           <input
             type="number"
             value={timeRangeEnd}
             onChange={(e) => setTimeRangeEnd(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="w-full px-4 py-2 border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)]"
             placeholder="Unix timestamp"
           />
         </div>
-
-        <Button onClick={handleGrantViewingKey} disabled={isGranting} className="w-full">
-          {isGranting ? "Granting..." : hasContract ? "Generate & Grant on-chain" : "Generate Viewing Key"}
+        <Button onClick={handleGrantViewingKey} disabled={isGranting} className="w-full rounded-xl">
+          {isGranting ? "Granting…" : hasContract ? "Generate & grant on-chain" : "Generate viewing key"}
         </Button>
-
         {viewingKey && (
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded">
-            <p className="text-sm font-medium mb-2">Viewing Key Generated:</p>
-            <p className="text-xs font-mono break-all">{viewingKey}</p>
+          <div className="p-4 rounded-xl bg-[var(--section)] border border-[var(--border)]">
+            <p className="text-sm font-medium text-[var(--foreground)] mb-2">Viewing key</p>
+            <p className="text-xs font-mono break-all text-[var(--muted)]">{viewingKey}</p>
           </div>
         )}
       </div>

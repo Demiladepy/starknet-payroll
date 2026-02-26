@@ -1,4 +1,4 @@
-import { WalletConnect } from "@/components/wallet/WalletConnect";
+import { DashboardNav } from "@/components/layout/DashboardNav";
 
 export default function CompanyLayout({
   children,
@@ -6,11 +6,8 @@ export default function CompanyLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <nav className="border-b p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Privacy Payroll</h1>
-        <WalletConnect />
-      </nav>
+    <div className="min-h-screen bg-[var(--background)]">
+      <DashboardNav context="company" />
       {children}
     </div>
   );

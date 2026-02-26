@@ -54,55 +54,42 @@ export function KeyManagement() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Key Management</h2>
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Key management</h2>
       
       <div className="space-y-4">
         {keypair ? (
           <>
-            <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded">
-              <p className="text-sm font-medium mb-2">Public Key (share with employer):</p>
-              <p className="text-xs font-mono break-all">{keypair.publicKey}</p>
+            <div className="p-4 rounded-xl bg-[var(--section)] border border-[var(--border)]">
+              <p className="text-sm font-medium text-[var(--foreground)] mb-2">Public key (share with employer)</p>
+              <p className="text-xs font-mono break-all text-[var(--muted)]">{keypair.publicKey}</p>
             </div>
-
-            <div className="p-4 bg-red-50 dark:bg-red-900 rounded">
-              <p className="text-sm font-medium mb-2">Private Key (keep secret):</p>
+            <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--section)]">
+              <p className="text-sm font-medium text-[var(--foreground)] mb-2">Private key (keep secret)</p>
               {showPrivateKey ? (
-                <p className="text-xs font-mono break-all">{keypair.privateKey}</p>
+                <p className="text-xs font-mono break-all text-[var(--muted)]">{keypair.privateKey}</p>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowPrivateKey(true)}
-                >
-                  Show Private Key
+                <Button variant="outline" size="sm" onClick={() => setShowPrivateKey(true)} className="rounded-xl">
+                  Show private key
                 </Button>
               )}
             </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleExportKeys} variant="outline">
-                Export Keys
-              </Button>
-              <Button
-                onClick={handleGenerateKeypair}
-                variant="destructive"
-              >
-                Generate New Keypair
-              </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleExportKeys} variant="outline" className="rounded-xl">Export keys</Button>
+              <Button onClick={handleGenerateKeypair} variant="destructive" className="rounded-xl">Generate new keypair</Button>
             </div>
           </>
         ) : (
           <div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-[var(--muted)] text-sm mb-4">
               Generate an ElGamal keypair to receive encrypted salary payments.
             </p>
             <Button
               onClick={handleGenerateKeypair}
               disabled={isGenerating}
-              className="w-full"
+              className="w-full rounded-xl"
             >
-              {isGenerating ? "Generating..." : "Generate Keypair"}
+              {isGenerating ? "Generating…" : "Generate keypair"}
             </Button>
           </div>
         )}

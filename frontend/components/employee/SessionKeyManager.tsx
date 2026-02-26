@@ -60,59 +60,43 @@ export function SessionKeyManager() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 className="text-2xl font-bold mb-4">Session Keys</h2>
-      
+    <div className="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-[var(--foreground)] mb-4">Session keys</h2>
       <div className="space-y-4">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-[var(--muted)]">
           Pre-authorize recurring payments without signing each transaction.
         </p>
         {hasContract ? (
-          <p className="text-xs text-gray-500">
-            Session keys will be written to `EmployeeAccount` on-chain.
-          </p>
+          <p className="text-xs text-[var(--muted)]">Session keys are stored on EmployeeAccount on-chain.</p>
         ) : (
-          <p className="text-xs text-gray-500">
-            Demo mode: set `NEXT_PUBLIC_EMPLOYEE_ACCOUNT_ADDRESS` to enable on-chain session keys.
-          </p>
+          <p className="text-xs text-[var(--muted)]">Set NEXT_PUBLIC_EMPLOYEE_ACCOUNT_ADDRESS to enable on-chain session keys.</p>
         )}
-
         <div>
-          <label className="block text-sm font-medium mb-2">Expiry (days)</label>
+          <label className="block text-sm font-medium text-[var(--foreground)] mb-1">Expiry (days)</label>
           <input
             type="number"
             value={expiryDays}
             onChange={(e) => setExpiryDays(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
+            className="w-full px-4 py-2 border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)]"
             placeholder="365"
           />
         </div>
-
-        <Button onClick={handleAddSessionKey} disabled={isAdding}>
-          {isAdding ? "Adding..." : "Add Session Key"}
+        <Button onClick={handleAddSessionKey} disabled={isAdding} className="rounded-xl">
+          {isAdding ? "Adding…" : "Add session key"}
         </Button>
-
         {sessionKeys.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <h3 className="font-medium">Active Session Keys:</h3>
+          <div className="space-y-2">
+            <h3 className="font-medium text-[var(--foreground)] text-sm">Active session keys</h3>
             {sessionKeys.map((sk) => (
               <div
                 key={sk.key}
-                className="p-3 bg-gray-100 dark:bg-gray-700 rounded flex justify-between items-center"
+                className="p-3 rounded-xl bg-[var(--section)] border border-[var(--border)] flex justify-between items-center"
               >
                 <div>
-                  <p className="text-xs font-mono">{sk.key.slice(0, 20)}...</p>
-                  <p className="text-xs text-gray-500">
-                    Expires: {new Date(sk.expiry * 1000).toLocaleDateString()}
-                  </p>
+                  <p className="text-xs font-mono text-[var(--muted)]">{sk.key.slice(0, 20)}…</p>
+                  <p className="text-xs text-[var(--muted)]">Expires: {new Date(sk.expiry * 1000).toLocaleDateString()}</p>
                 </div>
-                <Button
-                  onClick={() => handleRevokeSessionKey(sk.key)}
-                  variant="destructive"
-                  size="sm"
-                >
-                  Revoke
-                </Button>
+                <Button onClick={() => handleRevokeSessionKey(sk.key)} variant="destructive" size="sm" className="rounded-xl">Revoke</Button>
               </div>
             ))}
           </div>

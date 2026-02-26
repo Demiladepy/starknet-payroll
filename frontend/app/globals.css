@@ -2,22 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #1a1d21;
+    --muted: #6b7280;
+    --accent: #0d9488;
+    --accent-hover: #0f766e;
+    --accent-light: #ccfbf1;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --section: #f9fafb;
+    --hero-bg: #f0fdfa;
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0f1419;
+      --foreground: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #2dd4bf;
+      --accent-hover: #5eead4;
+      --accent-light: #134e4a;
+      --card: #1a1f26;
+      --border: #374151;
+      --section: #111827;
+      --hero-bg: #0d1f1c;
+    }
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 @layer utilities {
