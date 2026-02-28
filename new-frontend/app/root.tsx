@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -41,17 +42,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ClientNuqsAdapter({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return <>{children}</>;
+  return <NuqsAdapter>{children}</NuqsAdapter>;
+}
+
 export default function App() {
   return (
     <AppProviders>
-      <NuqsAdapter>
+      <ClientNuqsAdapter>
         <ThemeProvider>
           <ToastProvider>
             <Outlet />
             <Toaster position="top-right" richColors closeButton />
           </ToastProvider>
         </ThemeProvider>
-      </NuqsAdapter>
+      </ClientNuqsAdapter>
     </AppProviders>
   );
 }
@@ -67,17 +75,17 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       error.status === 404
         ? "The requested page could not be found."
         : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+  } else if (error && error instanceof Error) {
     details = error.message;
-    stack = error.stack;
+    stack = import.meta.env.DEV ? error.stack : undefined;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="pt-16 p-4 container mx-auto max-w-2xl">
+      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{message}</h1>
+      <p className="mt-2 text-zinc-600 dark:text-zinc-400">{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="mt-4 w-full p-4 overflow-x-auto text-xs bg-zinc-100 dark:bg-zinc-800 rounded-lg">
           <code>{stack}</code>
         </pre>
       )}
