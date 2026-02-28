@@ -141,7 +141,7 @@ export function Overview() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
                   <XAxis dataKey="month" className="text-xs" tick={{ fill: "currentColor" }} />
                   <YAxis className="text-xs" tick={{ fill: "currentColor" }} tickFormatter={(v) => `$${v / 1000}k`} />
-                  <Tooltip formatter={(v: number) => [formatCurrency(v), "Payroll"]} />
+                  <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Payroll"]} />
                   <Area
                     type="monotone"
                     dataKey="payroll"
@@ -168,7 +168,7 @@ export function Overview() {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
                   <XAxis type="number" tickFormatter={(v) => `$${v / 1000}k`} className="text-xs" />
                   <YAxis type="category" dataKey="name" width={80} className="text-xs" tick={{ fill: "currentColor" }} />
-                  <Tooltip formatter={(v: number) => [formatCurrency(v), "Total"]} />
+                  <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Total"]} />
                   <Bar dataKey="total" fill="var(--color-primary)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>

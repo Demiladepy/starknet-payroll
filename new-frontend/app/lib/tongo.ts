@@ -43,17 +43,16 @@ export async function getDecryptedBalance(
   if (!TONGO_ADDRESS) return null;
   try {
     const { Account: TongoAccount } = await import("@fatsolutions/tongo-sdk");
-    const tongoAccount = new TongoAccount(
-      tongoPrivateKey,
-      TONGO_ADDRESS,
-      signer as import("starknet").AccountInterface
-    );
-    const state = await tongoAccount.stateDeciphered();
-    return {
-      balance: state.balance ?? 0n,
-      pending: state.pending ?? 0n,
-      nonce: state.nonce ?? 0n,
-    };
+    // SDK may use a different starknet version; cast to satisfy types
+    const tongoAccount = new TongoAccount(tongoPrivateKey, TONGO_ADDRESS, signer as never);
+    const state = await (tongoAccount as { stateDeciphered?: () => Promise<{ balance?: bigint; pending?: bigint; nonce?: bigint }> }).stateDeciphered?.();
+    return state
+      ? {
+          balance: state.balance ?? 0n,
+          pending: state.pending ?? 0n,
+          nonce: state.nonce ?? 0n,
+        }
+      : null;
   } catch {
     return null;
   }
@@ -71,12 +70,8 @@ export async function buildTransferCall(
   if (!TONGO_ADDRESS) return null;
   try {
     const { Account: TongoAccount } = await import("@fatsolutions/tongo-sdk");
-    const tongoAccount = new TongoAccount(
-      senderTongoPrivateKey,
-      TONGO_ADDRESS,
-      null as unknown as import("starknet").AccountInterface
-    );
-    const op = await tongoAccount.transfer({
+    const tongoAccount = new TongoAccount(senderTongoPrivateKey, TONGO_ADDRESS, null as never);
+    const op = await (tongoAccount as unknown as { transfer: (d: { to: string; amount: bigint }) => Promise<{ toCalldata: () => unknown }> }).transfer({
       to: recipientPublicKey,
       amount,
     });

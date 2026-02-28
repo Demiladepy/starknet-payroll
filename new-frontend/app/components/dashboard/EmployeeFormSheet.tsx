@@ -120,7 +120,7 @@ export function EmployeeFormSheet({
             id="salary"
             type="number"
             min={0}
-            {...register("salary")}
+            {...register("salary", { valueAsNumber: true })}
             className="mt-1 dark:bg-zinc-800 dark:border-zinc-700"
           />
           {errors.salary && (

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router";
-import { useAccount } from "@starknet-react/core";
+import { useAccount, useConnect, useDisconnect } from "@starknet-react/core";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Modal } from "~/components/ui/modal";
@@ -69,7 +69,9 @@ function DashboardLayout() {
   const view = searchParams.get("view") || "overview";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
-  const { address, isConnected, connect, connectors, disconnect } = useAccount();
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
   const tongoConfigured = isTongoConfigured();
 
   useEffect(() => {
