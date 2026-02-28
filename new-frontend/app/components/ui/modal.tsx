@@ -21,7 +21,6 @@ export function Modal({
   showClose = true,
 }: ModalProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const isClosing = useRef(false);
 
@@ -61,7 +60,7 @@ export function Modal({
       <div
         ref={contentRef}
         className={cn(
-          "relative w-full max-w-lg bg-white dark:bg-slate-900 shadow-xl rounded-none border border-slate-200 dark:border-slate-800",
+          "relative w-full max-w-lg bg-white dark:bg-slate-900 shadow-xl rounded-[var(--radius-modal)] border border-slate-200 dark:border-slate-800",
           "animate-[modal-content-in_0.25s_ease-out_forwards]",
           className
         )}

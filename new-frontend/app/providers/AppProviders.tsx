@@ -1,5 +1,4 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { PrivyProvider } from "@privy-io/react-auth";
 import {
   StarknetConfig,
   publicProvider,
@@ -33,25 +32,9 @@ function StarknetConnectors({ children }: { children: ReactNode }) {
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  const appId = import.meta.env.VITE_PRIVY_APP_ID;
-  if (!appId) {
-    console.warn("VITE_PRIVY_APP_ID is not set; Privy auth may not work.");
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
-      <PrivyProvider
-        appId={appId ?? ""}
-        config={{
-          loginMethods: ["email", "wallet"],
-          appearance: {
-            theme: "light",
-            accentColor: "#2563eb",
-          },
-        }}
-      >
-        <StarknetConnectors>{children}</StarknetConnectors>
-      </PrivyProvider>
+      <StarknetConnectors>{children}</StarknetConnectors>
     </QueryClientProvider>
   );
 }

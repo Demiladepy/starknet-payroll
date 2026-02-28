@@ -6,21 +6,20 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import type { Route } from "./+types/root";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import { AppProviders } from "./providers/AppProviders";
+import { Toaster } from "sonner";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
+  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500&display=swap",
   },
 ];
 
@@ -45,7 +44,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AppProviders>
-      <Outlet />
+      <NuqsAdapter>
+        <ThemeProvider>
+          <ToastProvider>
+            <Outlet />
+            <Toaster position="top-right" richColors closeButton />
+          </ToastProvider>
+        </ThemeProvider>
+      </NuqsAdapter>
     </AppProviders>
   );
 }
