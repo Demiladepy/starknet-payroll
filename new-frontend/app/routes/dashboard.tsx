@@ -55,12 +55,26 @@ function isValidAddress(addr: string): boolean {
   return /^0x[a-fA-F0-9]{40,64}$/.test(addr.trim());
 }
 
-export default function Dashboard() {
+/** Dashboard uses useAccount(); StarknetConfig is client-only, so we must not render it during SSR. */
+function DashboardClientOnly() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+        <p className="text-zinc-500">Loading dashboard…</p>
+      </div>
+    );
+  }
   return (
     <DashboardProvider>
       <DashboardLayout />
     </DashboardProvider>
   );
+}
+
+export default function Dashboard() {
+  return <DashboardClientOnly />;
 }
 
 function DashboardLayout() {
