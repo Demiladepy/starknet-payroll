@@ -114,16 +114,41 @@ cd new-frontend
 npm run build
 ```
 
-### Deploy (frontend)
+### Deploy to Vercel
 
-The app is a standard Vite + React Router build. Deploy the output of `npm run build` (e.g. `build/client` and `build/server` for SSR) to Vercel or any Node-friendly host. Ensure Starknet/Starkzap run only on the client (dashboard is already wrapped in a client-only guard for SSR).
+1. **Connect the repo**  
+   In [Vercel](https://vercel.com): New Project → Import your Git repo. Set **Root Directory** to `new-frontend` (or deploy from inside `new-frontend` if the repo is frontend-only).
+
+2. **Add environment variables**  
+   In the project → Settings → Environment Variables, add (for Production, Preview, Development as needed):
+
+   | Name | Value | Required |
+   |------|--------|----------|
+   | `VITE_STARKNET_NETWORK` | `sepolia` | Yes |
+   | `VITE_STARKNET_RPC_URL` | e.g. `https://starknet-sepolia.public.blastapi.io` | Yes |
+   | `VITE_PAYROLL_MANAGER_ADDRESS` | Your payroll contract address | No (demo) |
+   | `VITE_TONGO_CONTRACT_ADDRESS` | Tongo contract address | No (for private transfers) |
+   | `VITE_TONGO_WRAPPER_ADDRESS` | Tongo wrapper address | No |
+   | `VITE_PRIVY_APP_ID` | Privy app id (if using Privy) | No |
+   | `VITE_DEMO_LEAD` | `wallet` or `starkzap` — which connect option is primary | No (default: `wallet`) |
+
+   Use the same values as in `.env.example` or your local `.env`. Leave optional ones blank if not using them.
+
+3. **Build and deploy**  
+   - **From Git**: Push to the connected branch; Vercel builds and deploys automatically.  
+   - **From CLI**: Install Vercel CLI (`npm i -g vercel`), run `vercel` (or `vercel --prod`) from the repo root and set root to `new-frontend` when prompted, or run `vercel` from inside `new-frontend`.
+
+4. **Redeploy after env changes**  
+   After adding or changing env vars: Project → Deployments → ⋮ on latest deployment → **Redeploy**. New deploys pick up the new variables.
+
+The app uses React Router 7 with SSR; Starknet/Starkzap run only on the client (dashboard is client-only for compatibility).
 
 ## Hackathons
 
-- **Starkzap-focused**: Lead with “Sign in with Starkzap” and show the badge + transfer flow.
-- **Tongo / wallet-focused**: Lead with “Connect wallet” and optional Tongo private transfers.
-
-Same codebase; two visible entry points (Connect wallet | Sign in with Starkzap) so both integrations are clear.
+- **One clear flow**: The UI leads with a single primary connect button; the other is a small footnote. Set `VITE_DEMO_LEAD=starkzap` in Vercel (or `.env`) to lead with Starkzap; otherwise Connect wallet is primary.
+- **60-second story**: Companies leak salary data on-chain. We fix that — private payroll on Starknet. (Home page + demo script.)
+- **Starkzap-focused**: Use `VITE_DEMO_LEAD=starkzap`, then show “Sign in with Starkzap” and show the badge + transfer flow.
+- **Tongo / wallet-focused**: Use default lead (wallet), then show Connect wallet → Tongo keys → private transfer.
 
 ## License
 

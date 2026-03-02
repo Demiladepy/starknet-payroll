@@ -89,6 +89,11 @@ function DashboardLayout() {
   const { disconnect } = useDisconnect();
   const { wallet: starkzapWallet, connecting: starkzapConnecting, connectStarkzap, disconnectStarkzap } = useStarkzap();
   const tongoConfigured = isTongoConfigured();
+  /** Demo: lead with one flow. Set VITE_DEMO_LEAD=starkzap to lead with Starkzap; otherwise "Connect wallet" is primary. */
+  const demoLead = (import.meta.env.VITE_DEMO_LEAD ?? "wallet") === "starkzap" ? "starkzap" : "wallet";
+  const connectedViaStarkzap = !!starkzapWallet;
+  const connectedViaWallet = isConnected;
+  const anyConnected = connectedViaStarkzap || connectedViaWallet;
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -114,53 +119,79 @@ function DashboardLayout() {
       {tongoConfigured && (
         <span className="text-xs text-zinc-500">Tongo</span>
       )}
-      {/* Option A: two visible entry points — Connect wallet | Sign in with Starkzap */}
-      {!isConnected ? (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-          disabled={connectors.length === 0}
-        >
-          <Wallet className="size-4 mr-1" />
-          Connect wallet
-        </Button>
+      {/* One clear flow: primary CTA + secondary as footnote. Lead = VITE_DEMO_LEAD (default: wallet). */}
+      {!anyConnected ? (
+        <div className="flex flex-col items-end gap-1">
+          {demoLead === "starkzap" ? (
+            <>
+              <Button
+                size="sm"
+                onClick={connectStarkzap}
+                disabled={starkzapConnecting}
+                className="bg-amber-600 hover:bg-amber-700 text-white border-0"
+              >
+                {starkzapConnecting ? <Loader2 className="size-4 mr-1.5 animate-spin shrink-0" /> : null}
+                Sign in with Starkzap
+              </Button>
+              <button
+                type="button"
+                onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+                disabled={connectors.length === 0}
+                className="text-xs text-zinc-500 hover:text-zinc-400 underline underline-offset-1"
+              >
+                Or connect wallet
+              </button>
+            </>
+          ) : (
+            <>
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => connectors[0] && connect({ connector: connectors[0] })}
+                disabled={connectors.length === 0}
+              >
+                <Wallet className="size-4 mr-1" />
+                Connect wallet
+              </Button>
+              <button
+                type="button"
+                onClick={connectStarkzap}
+                disabled={starkzapConnecting}
+                className="text-xs text-zinc-500 hover:text-zinc-400 underline underline-offset-1"
+              >
+                {starkzapConnecting ? "Connecting…" : "Or sign in with Starkzap"}
+              </button>
+            </>
+          )}
+        </div>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={address}>
-            {address?.slice(0, 6)}…{address?.slice(-4)}
-          </span>
-          <Button variant="ghost" size="icon" onClick={() => disconnect()} title="Disconnect wallet">
-            <LogOut className="size-4" />
-          </Button>
+          {connectedViaStarkzap ? (
+            <>
+              <span className="text-xs font-medium text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">Starkzap</span>
+              <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={starkzapWallet!.address}>
+                {starkzapWallet!.address.slice(0, 6)}…{starkzapWallet!.address.slice(-4)}
+              </span>
+              <Button variant="ghost" size="icon" onClick={() => disconnectStarkzap()} title="Disconnect">
+                <LogOut className="size-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={address}>
+                {address?.slice(0, 6)}…{address?.slice(-4)}
+              </span>
+              <Button variant="ghost" size="icon" onClick={() => disconnect()} title="Disconnect">
+                <LogOut className="size-4" />
+              </Button>
+            </>
+          )}
+          <span className="text-zinc-600 dark:text-zinc-500">·</span>
+          <Link to="/">
+            <Button variant="ghost" size="sm">Home</Button>
+          </Link>
         </div>
       )}
-      {!starkzapWallet ? (
-        <Button
-          size="sm"
-          onClick={connectStarkzap}
-          disabled={starkzapConnecting}
-          className="bg-amber-600 hover:bg-amber-700 text-white border-0"
-        >
-          {starkzapConnecting ? (
-            <Loader2 className="size-4 mr-1.5 animate-spin shrink-0" />
-          ) : null}
-          Sign in with Starkzap
-        </Button>
-      ) : (
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">Starkzap</span>
-          <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={starkzapWallet.address}>
-            {starkzapWallet.address.slice(0, 6)}…{starkzapWallet.address.slice(-4)}
-          </span>
-          <Button variant="ghost" size="icon" onClick={() => disconnectStarkzap()} title="Disconnect Starkzap">
-            <LogOut className="size-4" />
-          </Button>
-        </div>
-      )}
-      <Link to="/">
-        <Button variant="ghost" size="sm">Home</Button>
-      </Link>
     </>
   );
 

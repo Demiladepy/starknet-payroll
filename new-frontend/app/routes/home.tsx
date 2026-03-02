@@ -41,9 +41,12 @@ export default function LandingPage() {
             Company Employee{" "}
             <span className="text-brand-400">Management</span>
           </h1>
-          <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-            Manage your team in one place. Add employees, track payroll, and send
-            transfers from a single dashboard.
+          <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Companies leak salary data on-chain. We fix that —{" "}
+            <span className="text-brand-400 font-medium">private payroll on Starknet</span>.
+          </p>
+          <p className="text-sm text-slate-500 max-w-xl mx-auto">
+            Add employees, send transfers, and optionally use encrypted (Tongo) payments so amounts stay private.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             <Link to="/dashboard">
