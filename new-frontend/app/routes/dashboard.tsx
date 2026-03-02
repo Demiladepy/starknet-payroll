@@ -8,6 +8,7 @@ import { AlertDialog } from "~/components/ui/alert-dialog";
 import { CopyWallet } from "~/components/ui/copy-wallet";
 import { EmployeeFormSheet } from "~/components/dashboard/EmployeeFormSheet";
 import { DashboardProvider, useDashboard } from "~/contexts/DashboardContext";
+import { useStarkzap } from "~/contexts/StarkzapContext";
 import { useToast } from "~/contexts/ToastContext";
 import { Sidebar } from "~/components/dashboard/Sidebar";
 import { Topbar } from "~/components/dashboard/Topbar";
@@ -86,6 +87,7 @@ function DashboardLayout() {
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
+  const { wallet: starkzapWallet, connecting: starkzapConnecting, connectStarkzap, disconnectStarkzap } = useStarkzap();
   const tongoConfigured = isTongoConfigured();
 
   useEffect(() => {
@@ -112,21 +114,46 @@ function DashboardLayout() {
       {tongoConfigured && (
         <span className="text-xs text-zinc-500">Tongo</span>
       )}
+      {/* Option A: two visible entry points — Connect wallet | Sign in with Starkzap */}
       {!isConnected ? (
         <Button
           size="sm"
+          variant="outline"
           onClick={() => connectors[0] && connect({ connector: connectors[0] })}
           disabled={connectors.length === 0}
         >
           <Wallet className="size-4 mr-1" />
-          Connect
+          Connect wallet
         </Button>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]">
+          <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={address}>
             {address?.slice(0, 6)}…{address?.slice(-4)}
           </span>
-          <Button variant="ghost" size="icon" onClick={() => disconnect()}>
+          <Button variant="ghost" size="icon" onClick={() => disconnect()} title="Disconnect wallet">
+            <LogOut className="size-4" />
+          </Button>
+        </div>
+      )}
+      {!starkzapWallet ? (
+        <Button
+          size="sm"
+          onClick={connectStarkzap}
+          disabled={starkzapConnecting}
+          className="bg-amber-600 hover:bg-amber-700 text-white border-0"
+        >
+          {starkzapConnecting ? (
+            <Loader2 className="size-4 mr-1.5 animate-spin shrink-0" />
+          ) : null}
+          Sign in with Starkzap
+        </Button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-amber-500/90 bg-amber-500/10 px-1.5 py-0.5 rounded">Starkzap</span>
+          <span className="text-xs font-mono text-zinc-500 truncate max-w-[100px]" title={starkzapWallet.address}>
+            {starkzapWallet.address.slice(0, 6)}…{starkzapWallet.address.slice(-4)}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => disconnectStarkzap()} title="Disconnect Starkzap">
             <LogOut className="size-4" />
           </Button>
         </div>
@@ -176,6 +203,7 @@ function DashboardContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { account, isConnected } = useAccount();
+  const { wallet: starkzapWallet } = useStarkzap();
   const {
     employees,
     transfers,
@@ -247,10 +275,14 @@ function DashboardContent() {
     ? activeEmployees.find((e) => e.id === transferEmployeeId)
     : null;
 
+  /** Prefer Starkzap when connected; otherwise use injected wallet */
+  const activeAccount = starkzapWallet ?? (isConnected ? account : null);
+  const activeConnected = !!starkzapWallet || isConnected;
+
   const canUseTongoTransfer =
     tongoConfigured &&
-    isConnected &&
-    !!account &&
+    activeConnected &&
+    !!activeAccount &&
     companyTongoKey.trim() !== "" &&
     !!selectedEmployee?.tongoPublicKey?.trim();
 
@@ -318,7 +350,7 @@ function DashboardContent() {
     const amount = Number(transferAmount);
     const amountBaseUnits = BigInt(Math.round(amount * 1e6));
 
-    if (canUseTongoTransfer && account) {
+    if (canUseTongoTransfer && activeAccount) {
       setTransferPending(true);
       try {
         const call = await buildTransferCall(
@@ -330,11 +362,16 @@ function DashboardContent() {
           toast("Failed to build Tongo transfer.");
           return;
         }
-        await account.execute({
+        const executeCall = {
           contractAddress: call.contractAddress as `0x${string}`,
           entrypoint: call.entrypoint,
           calldata: call.calldata,
-        });
+        };
+        if (starkzapWallet) {
+          await starkzapWallet.execute([executeCall]);
+        } else if (account) {
+          await account.execute(executeCall);
+        }
         addTransfer({
           employeeId: selectedEmployee.id,
           employeeName: selectedEmployee.name,

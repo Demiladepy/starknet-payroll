@@ -34,6 +34,7 @@
     "recharts": "^3.7.0",
     "sonner": "^2.0.7",
     "starknet": "^9.2.1",
+    "starkzap": "^1.0.0",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"

@@ -6,6 +6,7 @@ import {
   useInjectedConnectors,
 } from "@starknet-react/core";
 import { sepolia } from "@starknet-react/chains";
+import { StarkzapProvider } from "~/contexts/StarkzapContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,7 +49,11 @@ function StarknetConnectors({ children }: { children: ReactNode }) {
   if (!mounted || typeof window === "undefined") {
     return <>{children}</>;
   }
-  return <StarknetConnectorsClient>{children}</StarknetConnectorsClient>;
+  return (
+    <StarknetConnectorsClient>
+      <StarkzapProvider>{children}</StarkzapProvider>
+    </StarknetConnectorsClient>
+  );
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
