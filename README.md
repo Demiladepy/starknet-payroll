@@ -1,40 +1,53 @@
 # Privacy-First Payroll System
 
-A privacy-preserving payroll system built on Starknet using Tongo Protocol for encrypted salaries, account abstraction for batch payments, and Chipi Pay for fiat off-ramp.
+A privacy-preserving payroll app on Starknet with **Starkzap** and **Tongo**: company dashboard, employee management, and optional private (encrypted) transfers.
 
 ## Architecture
 
-- **Smart Contracts** (Cairo 2.x): PayrollManager, EmployeeAccount, ComplianceModule
-- **Frontend** (Next.js): Company dashboard and employee portal
-- **Privacy Layer**: Tongo SDK for ElGamal encryption
-- **Payment Integration**: Chipi Pay SDK for fiat off-ramp
+- **Frontend** (React Router 7 + Vite): Company dashboard and home; client-side only for wallet/Starknet
+- **Wallet & sign-in**: **Connect wallet** (injected, e.g. Argent X / Braavos) and **Sign in with Starkzap** (Starkzap SDK, demo in-memory signer for hackathon)
+- **Privacy (optional)**: Tongo SDK for confidential transfers when company/employee Tongo keys are set
+- **Network**: Starknet Sepolia (configurable via env)
 
-All processing happens client-side or on-chain - no backend server required.
+No backend server; processing is client-side or on-chain.
 
 ## Features
 
-- 🔐 **Private Salaries**: ElGamal encryption ensures salary amounts remain private on-chain
-- 📦 **Batch Payments**: Execute payroll for all employees in a single transaction
-- 💰 **Gasless UX**: Company pays gas fees for employees via paymaster
-- 🔍 **Selective Disclosure**: Viewing keys enable compliance audits without exposing all data
-- 💳 **Fiat Off-Ramp**: Chipi Pay integration for QR payments and bank transfers
-- 🔑 **Session Keys**: Pre-authorize recurring payments without signing each time
+- **Dual connect**: “Connect wallet” (injected) and “Sign in with Starkzap” — both visible in the UI
+- **Private transfers**: Optional Tongo path for encrypted salary amounts on-chain
+- **Unified account**: Dashboard and transfers use either the Starkzap wallet or the injected wallet as the active account
+- **Company dashboard**: Employees, transfer history, new transfer flow (Tongo when configured)
+- **Theme, toasts, command palette**: Dark/light theme, notifications, Cmd+K palette
 
-## Project Structure
+## Project structure
 
 ```
-starknet/
-├── contracts/              # Cairo smart contracts
-│   ├── PayrollManager.cairo
-│   ├── EmployeeAccount.cairo
-│   ├── ComplianceModule.cairo
-│   └── Scarb.toml
-├── frontend/              # Next.js application
-│   ├── app/              # Next.js App Router
-│   ├── components/       # React components
-│   ├── lib/              # Utilities
-│   └── hooks/            # React hooks
-├── scripts/              # Deployment scripts
+starknet-payroll/
+├── new-frontend/                 # React Router 7 + Vite app
+│   ├── app/
+│   │   ├── components/           # UI and dashboard components
+│   │   │   ├── dashboard/        # Topbar, Sidebar, Overview, etc.
+│   │   │   └── ui/               # Button, Card, Modal, etc.
+│   │   ├── contexts/             # React context
+│   │   │   ├── StarkzapContext.tsx   # Starkzap SDK, connect/disconnect
+│   │   │   ├── DashboardContext.tsx  # Employees, transfers state
+│   │   │   ├── ToastContext.tsx
+│   │   │   └── ThemeContext.tsx
+│   │   ├── lib/                  # Utilities
+│   │   │   ├── tongo.ts          # Tongo buildTransferCall, config
+│   │   │   ├── employeeSchema.ts
+│   │   │   ├── seed.ts
+│   │   │   └── ...
+│   │   ├── providers/
+│   │   │   └── AppProviders.tsx  # QueryClient, Starknet, Starkzap
+│   │   ├── routes/
+│   │   │   ├── home.tsx
+│   │   │   └── dashboard.tsx    # Layout, wallet section, content
+│   │   ├── root.tsx
+│   │   └── routes.ts
+│   ├── .env.example
+│   ├── package.json
+│   └── README.md
 └── README.md
 ```
 
@@ -43,144 +56,74 @@ starknet/
 ### Prerequisites
 
 - Node.js 18+
-- Starknet wallet (Argent X or Braavos) on Sepolia
+- Starknet wallet (e.g. Argent X, Braavos) on Sepolia for “Connect wallet”
+- (Optional) Tongo keys for private transfers
 
-### Quick start (demo without contracts)
+### Quick start
 
 1. Install and run the frontend:
+
 ```bash
-cd frontend
+cd new-frontend
 npm install
 npm run dev
 ```
 
-2. Open [http://localhost:3000](http://localhost:3000), connect your wallet, and use **Company Dashboard** or **Employee Portal**. Encryption and Chipi Pay are mocked so the full flow works without deploying contracts.
+2. Open [http://localhost:5173](http://localhost:5173). Use **Connect wallet** or **Sign in with Starkzap** from the dashboard header.
 
-### Optional: Smart contracts
+### Environment
 
-1. Install Scarb and build:
-```bash
-cd contracts
-scarb build
-```
+Copy `.env.example` to `.env` in `new-frontend/` and adjust:
 
-2. Deploy (set env vars: `PRIVATE_KEY`, `ACCOUNT_ADDRESS`, etc.) then put contract addresses in `frontend/.env.local`.
+| Variable | Description |
+|----------|-------------|
+| `VITE_STARKNET_NETWORK` | e.g. `sepolia` |
+| `VITE_STARKNET_RPC_URL` | Starknet RPC URL |
+| `VITE_PAYROLL_MANAGER_ADDRESS` | Payroll manager contract (if used) |
+| `VITE_TONGO_CONTRACT_ADDRESS` | Tongo contract for private transfers |
+| `VITE_TONGO_WRAPPER_ADDRESS` | Tongo wrapper address |
+| `VITE_PRIVY_APP_ID` | Optional Privy app id |
 
-### Real Tongo & Chipi SDKs
+### Tongo (optional private transfers)
 
-The app uses **real SDKs** when configured; otherwise it falls back to mocks so the demo runs without keys.
-
-**Tongo (confidential balances & transfers)**  
-- Official Quick Start: [@fatsolutions/tongo-sdk](https://www.npmjs.com/package/@fatsolutions/tongo-sdk)  
-- Set in `frontend/.env.local`:
-  - `NEXT_PUBLIC_TONGO_CONTRACT_ADDRESS` – Tongo contract (e.g. mainnet USDC `0x0415f2c3b16cc43856a0434ed151888a5797b6a22492ea6fd41c62dbb4df4e6c`)
-  - Optional for balance in browser: `NEXT_PUBLIC_STARKNET_SIGNER_ADDRESS`, `NEXT_PUBLIC_STARKNET_SIGNER_PRIVATE_KEY` (Starknet account used to create TongoAccount)
-- API matches the SDK: `TongoAccount(privateKey, tongoAddress, signer)`; `stateDeciphered()`; `fund({ amount })` + `populateApprove()` + `signer.execute([fundOp.approve!, fundOp.toCalldata()])`; `transfer({ to: recipientPublicKey, amount })`; `rollover()`; `withdraw({ to, amount })`. Use `tongoService.createTongoAccount(tongoPrivateKey, { address, privateKey })` to get an account instance.
-- Tongo SDK requires **starknet 8**. If you see version conflicts, use the mock flow or run Tongo ops in a script with `starknet@8`.
-
-**Chipi Pay (gasless transfers, wallet creation)**  
-- Get API key: [dashboard.chipipay.com](https://dashboard.chipipay.com)  
-- Set in `frontend/.env.local`:
-  - `NEXT_PUBLIC_CHIPI_API_KEY`
-  - Optional for real transfers: `NEXT_PUBLIC_CHIPI_BEARER_TOKEN`, `NEXT_PUBLIC_CHIPI_WALLET_PUBLIC_KEY`, `NEXT_PUBLIC_CHIPI_WALLET_ENCRYPTED_KEY` (from Chipi wallet creation flow)
-- Employee **Spending Options → Chipi Transfer** uses `useTransfer` when the API key is set and the app is wrapped with Chipi’s provider.
+- Set Tongo env vars in `new-frontend/.env`.
+- In the dashboard: add/edit employees with a Tongo public key; enter the company Tongo private key in the transfer modal to enable the private (Tongo) path.
+- When active account is injected wallet or Starkzap, the app uses `buildTransferCall` and executes via `account.execute` or `starkzapWallet.execute` respectively.
 
 ## Usage
 
-### Company Dashboard
+### Company dashboard
 
-1. Connect your Starknet wallet
-2. Navigate to Company Dashboard
-3. Add employees with encrypted salaries
-4. Execute batch payroll payments
-5. Manage compliance viewing keys
+1. Go to the dashboard (link from home).
+2. **Connect**: Use **Connect wallet** (injected) or **Sign in with Starkzap**.
+3. Add employees (name, role, department, salary, wallet address, optional Tongo public key).
+4. **New Transfer**: Pick employee, amount, optional note. If Tongo is configured and keys are set, the transfer uses the private Tongo path; otherwise it’s recorded locally.
+5. View **Transfer history** and manage employees from the same dashboard.
 
-### Employee Portal
+### Sign in with Starkzap
 
-1. Connect your Starknet wallet
-2. Navigate to Employee Portal
-3. Generate ElGamal keypair (first time only)
-4. View encrypted balance and decrypt salary
-5. Set up session keys for automated payments
-6. Unwrap to public USDC or use Chipi Pay for spending
-
-## Smart Contracts
-
-### PayrollManager
-
-Core payroll logic:
-- `add_employee`: Add employee with encrypted salary
-- `execute_payroll`: Batch payment execution
-- `update_salary`: Modify employee salary
-- `remove_employee`: Deactivate employee
-
-### EmployeeAccount
-
-Account abstraction contract:
-- `claim_salary`: Employee-initiated salary claim
-- `add_session_key`: Pre-authorize recurring payments
-- `__validate__`: Returns paymaster for gasless transactions
-
-### ComplianceModule
-
-Viewing key management:
-- `grant_viewing_key`: Allow auditor to decrypt specific salaries
-- `revoke_viewing_key`: Remove auditor access
-
-## Security Considerations
-
-1. **Private Key Protection**: Employee private keys stored in browser localStorage (encrypted in production)
-2. **Encryption Verification**: Always verify ZK proofs before accepting encrypted amounts
-3. **Access Control**: Strict owner checks in PayrollManager contract
-4. **Reentrancy**: Reentrancy guards on token transfer functions
-5. **Input Validation**: Validate all user inputs before encryption/contract calls
+- **Sign in with Starkzap** creates a demo session with an in-memory signer (no key stored). Ideal for hackathon demos to show Starkzap integration.
+- When connected via Starkzap, the UI shows a “Starkzap” badge and the wallet address; transfers use the Starkzap wallet when Tongo is used.
 
 ## Development
 
-### Testing
+### Build
 
 ```bash
-# Test contracts
-cd contracts
-scarb test
-
-# Test frontend
-cd frontend
-npm test
-```
-
-### Building
-
-```bash
-# Build contracts
-cd contracts
-scarb build
-
-# Build frontend
-cd frontend
+cd new-frontend
 npm run build
 ```
 
-## Deployment
+### Deploy (frontend)
 
-### Contracts
+The app is a standard Vite + React Router build. Deploy the output of `npm run build` (e.g. `build/client` and `build/server` for SSR) to Vercel or any Node-friendly host. Ensure Starknet/Starkzap run only on the client (dashboard is already wrapped in a client-only guard for SSR).
 
-Deploy to Starknet Sepolia testnet:
-```bash
-cd scripts
-NETWORK=sepolia \
-PRIVATE_KEY=your_key \
-ACCOUNT_ADDRESS=your_address \
-npm run deploy
-```
+## Hackathons
 
-### Frontend
+- **Starkzap-focused**: Lead with “Sign in with Starkzap” and show the badge + transfer flow.
+- **Tongo / wallet-focused**: Lead with “Connect wallet” and optional Tongo private transfers.
 
-Deploy to Vercel:
-```bash
-cd frontend
-vercel deploy
-```
+Same codebase; two visible entry points (Connect wallet | Sign in with Starkzap) so both integrations are clear.
 
 ## License
 
@@ -188,6 +131,6 @@ MIT
 
 ## Acknowledgments
 
-- Built for Starknet Redefine Hackathon 2025
-- Uses Tongo Protocol for privacy
-- Integrates with Chipi Pay for fiat off-ramp
+- Built for Starknet ecosystem hackathons
+- Uses [Starkzap](https://www.npmjs.com/package/starkzap) for wallet/signer integration
+- Optional privacy via Tongo Protocol
