@@ -131,6 +131,8 @@ npm run build
    | `VITE_TONGO_WRAPPER_ADDRESS` | Tongo wrapper address | No |
    | `VITE_PRIVY_APP_ID` | Privy app id (if using Privy) | No |
    | `VITE_DEMO_LEAD` | `wallet` or `starkzap` — which connect option is primary | No (default: `wallet`) |
+   | `CAIRO_CODER_API_KEY` | Cairo Coder API key (server-only) | No (only if you add a Cairo Coder feature) |
+   | `CAIRO_CODER_API_ENDPOINT` | Custom endpoint (server-only) | No |
 
    Use the same values as in `.env.example` or your local `.env`. Leave optional ones blank if not using them.
 

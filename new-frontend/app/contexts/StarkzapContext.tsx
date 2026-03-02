@@ -2,10 +2,10 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
-import { StarkSDK, StarkSigner } from "starkzap";
 import type { WalletInterface } from "starkzap";
 
 type StarkzapContextValue = {
@@ -18,7 +18,7 @@ type StarkzapContextValue = {
   /** Disconnect Starkzap wallet */
   disconnectStarkzap: () => Promise<void>;
   /** SDK instance (sepolia) for use in transfer flows if needed */
-  sdk: StarkSDK | null;
+  sdk: import("starkzap").StarkSDK | null;
 };
 
 const StarkzapContext = createContext<StarkzapContextValue | null>(null);
@@ -37,22 +37,35 @@ function randomPrivateKey(): string {
 export function StarkzapProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<WalletInterface | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [sdk] = useState<StarkSDK | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return new StarkSDK({ network: "sepolia" });
-    } catch {
-      return null;
-    }
-  });
+  const [sdk, setSdk] = useState<import("starkzap").StarkSDK | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (typeof window === "undefined") return;
+    (async () => {
+      try {
+        const { StarkSDK } = await import("starkzap");
+        if (cancelled) return;
+        setSdk(new StarkSDK({ network: "sepolia" }));
+      } catch {
+        // ignore; user can still attempt connect which will lazy-init
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const connectStarkzap = useCallback(async () => {
-    if (!sdk) return;
     setConnecting(true);
     try {
+      const { StarkSDK, StarkSigner } = await import("starkzap");
+      const localSdk = sdk ?? new StarkSDK({ network: "sepolia" });
+      if (!sdk) setSdk(localSdk);
+
       const privateKey = randomPrivateKey();
       const signer = new StarkSigner(privateKey);
-      const w = await sdk.connectWallet({
+      const w = await localSdk.connectWallet({
         account: { signer },
       });
       await w.ensureReady({ deploy: "if_needed" }).catch(() => {
