@@ -138,6 +138,150 @@ export function mockNoteHash(secretNote: string): string {
   return `0x${"0".repeat(48)}${tail}`;
 }
 
+/** Spec-style seed employees (5) for first-load / demo */
+const SEED_EMPLOYEES_RAW: Array<Omit<Employee, "id" | "avatar">> = [
+  {
+    name: "Alice Chen",
+    role: "Senior Engineer",
+    department: "Engineering",
+    salary: 2.5,
+    address: "0x04a1f292e0321579bC56bE2D90F6e31aC86bCd88A5A4a4C5F1263B83BE5e2a61",
+    status: "active",
+    hireDate: new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10),
+    tongoPublicKey: "0x02abc123def456789012345678901234567890123456789012345678901234abcd",
+  },
+  {
+    name: "Bob Martinez",
+    role: "Product Designer",
+    department: "Design",
+    salary: 2.0,
+    address: "0x07be3e456c8b2c45e89dc02bc6d8e9f4c73ae5d12b7f08a612cc9e3f7b842190",
+    status: "active",
+    hireDate: new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10),
+    tongoPublicKey: "0x03def789abc012345678901234567890123456789012345678901234567890cdef",
+  },
+  {
+    name: "Carol Williams",
+    role: "Marketing Lead",
+    department: "Marketing",
+    salary: 1.8,
+    address: "0x01cf4a5b7d8e2f63c09ab1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5",
+    status: "active",
+    hireDate: new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10),
+  },
+  {
+    name: "David Kim",
+    role: "DevOps Engineer",
+    department: "Engineering",
+    salary: 2.3,
+    address: "0x06e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    status: "active",
+    hireDate: new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10),
+    tongoPublicKey: "0x04ghi012jkl3456789012345678901234567890123456789012345678901234ghij",
+  },
+  {
+    name: "Eve Johnson",
+    role: "HR Manager",
+    department: "HR",
+    salary: 1.5,
+    address: "0x05d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
+    status: "active",
+    hireDate: new Date(Date.now() - 15 * 86400000).toISOString().slice(0, 10),
+  },
+];
+
+function getDefaultSeedEmployees(): Employee[] {
+  return SEED_EMPLOYEES_RAW.map((e, idx) => ({
+    ...e,
+    id: `emp-${idx + 1}`,
+    avatar: initials(e.name),
+  }));
+}
+
+function getDefaultSeedTransfers(): UnifiedTransfer[] {
+  const employees = getDefaultSeedEmployees();
+  const now = Date.now();
+  return [
+    {
+      id: "tx-1",
+      type: "tongo",
+      from: "Company",
+      to: { name: employees[0]!.name, address: employees[0]!.address },
+      amount: 2.5,
+      token: "USDC",
+      txHash: "0x04a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+      status: "completed",
+      timestamp: new Date(now - 3 * 86400000).toISOString(),
+      note: "March salary",
+      private: true,
+    },
+    {
+      id: "tx-2",
+      type: "tongo",
+      from: "Company",
+      to: { name: employees[1]!.name, address: employees[1]!.address },
+      amount: 2.0,
+      token: "USDC",
+      txHash: "0x05b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f01a",
+      status: "completed",
+      timestamp: new Date(now - 3 * 86400000).toISOString(),
+      note: "March salary",
+      private: true,
+    },
+    {
+      id: "tx-3",
+      type: "direct",
+      from: "Company",
+      to: { name: employees[2]!.name, address: employees[2]!.address },
+      amount: 1.8,
+      token: "USDC",
+      txHash: mockTxHash(),
+      status: "completed",
+      timestamp: new Date(now - 3 * 86400000).toISOString(),
+      private: false,
+    },
+    {
+      id: "tx-4",
+      type: "tongo",
+      from: "Company",
+      to: { name: employees[3]!.name, address: employees[3]!.address },
+      amount: 2.3,
+      token: "USDC",
+      txHash: "0x06c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f01a2b",
+      status: "pending",
+      timestamp: new Date(now - 1 * 86400000).toISOString(),
+      note: "March salary + bonus",
+      private: true,
+    },
+    {
+      id: "tx-5",
+      type: "direct",
+      from: "Company",
+      to: { name: employees[0]!.name, address: employees[0]!.address },
+      amount: 0.5,
+      token: "USDC",
+      txHash: mockTxHash(),
+      status: "completed",
+      timestamp: new Date(now - 10 * 86400000).toISOString(),
+      note: "Performance bonus",
+      private: false,
+    },
+    {
+      id: "tx-6",
+      type: "direct",
+      from: "Company",
+      to: { name: employees[4]!.name, address: employees[4]!.address },
+      amount: 1.5,
+      token: "USDC",
+      txHash: "",
+      status: "failed",
+      timestamp: new Date(now - 7 * 86400000).toISOString(),
+      private: false,
+    },
+  ];
+}
+
+/** Demo seed (3 employees) for "Run Full Demo" / demo mode */
 const DEMO_EMPLOYEES: Array<Omit<Employee, "id" | "avatar">> = [
   {
     name: "Adebayo Ogunlade",
@@ -224,8 +368,8 @@ export const useCompanyStore = create<CompanyState>()(
     (set, get) => ({
       demoMode: false,
       wallet: { connected: false },
-      employees: [],
-      transfers: [],
+      employees: getDefaultSeedEmployees(),
+      transfers: getDefaultSeedTransfers(),
       tongoNotes: [],
       historyFilters: {},
 

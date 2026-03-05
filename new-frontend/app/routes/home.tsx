@@ -1,93 +1,236 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
-import { Users, LayoutDashboard } from "lucide-react";
+import { useConnect, useAccount } from "@starknet-react/core";
+import { useStarkzap } from "~/contexts/StarkzapContext";
+import {
+  LayoutDashboard,
+  Zap,
+  ArrowRight,
+  Wallet,
+  Lock,
+  BarChart3,
+} from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function meta() {
   return [
-    { title: "Company Employee Management" },
+    { title: "Private Payroll for the Onchain Era" },
     {
       name: "description",
       content:
-        "Manage employees and send transfers. Company Employee Management Dashboard.",
+        "Privacy-first payroll on Starknet. Pay salaries with optional encrypted (Tongo) transfers. Connect with Argent X, Braavos, or Sign in with Starkzap.",
     },
   ];
 }
 
+/** Client-only CTAs that need wallet hooks */
+function HomeHeroCTAs() {
+  const navigate = useNavigate();
+  const { address, status } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { wallet: starkzapWallet, connecting: starkzapConnecting, connectStarkzap } = useStarkzap();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const connected = status === "connected" && !!address;
+  const starkzapConnected = !!starkzapWallet?.address;
+
+  async function handleStarkzap() {
+    try {
+      await connectStarkzap();
+      navigate("/dashboard");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        <Button size="lg" className="min-w-[180px]" disabled>
+          Loading…
+        </Button>
+      </div>
+    );
+  }
+
+  if (connected || starkzapConnected) {
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+        <Link to="/dashboard">
+          <Button size="lg" className="min-w-[180px] btn-fintech-primary">
+            <LayoutDashboard className="size-5 mr-2" />
+            Open Dashboard
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+      {connectors.map((connector) => (
+        <Button
+          key={connector.id}
+          size="lg"
+          variant="outline"
+          className="min-w-[180px] border-[var(--accent-teal)] text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10"
+          onClick={() => connect({ connector })}
+        >
+          <Wallet className="size-5 mr-2" />
+          Connect {connector.name}
+        </Button>
+      ))}
+      <Button
+        size="lg"
+        className="min-w-[180px] btn-fintech-primary"
+        onClick={handleStarkzap}
+        disabled={starkzapConnecting}
+      >
+        {starkzapConnecting ? (
+          "Connecting…"
+        ) : (
+          <>
+            <Zap className="size-5 mr-2" />
+            Sign in with Starkzap
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)]">
+      <header className="border-b border-[var(--border-card)] bg-[var(--bg-secondary)]/80 sticky top-0 z-10 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <span className="font-semibold text-brand-400 text-lg">
-            Company Employee Management
+          <span className="font-heading font-bold text-lg text-[var(--accent-teal)]">
+            Private Payroll
           </span>
           <nav className="flex items-center gap-4">
             <Link
               to="/dashboard"
-              className="text-slate-400 hover:text-brand-400 text-sm font-medium transition-colors"
+              className="text-[var(--text-secondary)] hover:text-[var(--accent-teal)] text-sm font-medium transition-colors"
             >
               Dashboard
             </Link>
             <Link to="/dashboard">
-              <Button size="sm">Open Dashboard</Button>
+              <Button size="sm" className="btn-fintech-primary">
+                Open Dashboard
+              </Button>
             </Link>
           </nav>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-24 text-center">
-        <div className="max-w-3xl mx-auto space-y-8">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-100 tracking-tight leading-[1.1]">
-            Company Employee{" "}
-            <span className="text-brand-400">Management</span>
+      <main className="flex-1 flex flex-col items-center px-4 py-16 sm:py-24">
+        {/* Hero */}
+        <section className="max-w-4xl mx-auto text-center space-y-6">
+          <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-[var(--text-primary)]">
+            Private Payroll for the Onchain Era
           </h1>
-          <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Companies leak salary data on-chain. We fix that —{" "}
-            <span className="text-brand-400 font-medium">private payroll on Starknet</span>.
+          <p className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
+            Companies leak salary data on public blockchains. We fix that. Pay salaries with optional{" "}
+            <span className="text-[var(--accent-teal)] font-medium">encrypted (Tongo) transfers</span> so amounts stay private.
           </p>
-          <p className="text-sm text-slate-500 max-w-xl mx-auto">
-            Add employees, send transfers, and optionally use encrypted (Tongo) payments so amounts stay private.
+          <p className="text-sm text-[var(--text-muted)] max-w-xl mx-auto">
+            Connect with Argent X or Braavos, or Sign in with Starkzap. Manage employees and send payments from one dashboard.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <Link to="/dashboard">
-              <Button size="lg" className="min-w-[180px]">
-                <LayoutDashboard className="size-5 mr-2" />
-                Open Dashboard
-              </Button>
-            </Link>
-          </div>
-        </div>
+          <HomeHeroCTAs />
+        </section>
 
-        <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl w-full">
-          <div className="rounded-[var(--radius-card)] border border-slate-800 bg-slate-900 p-6 text-left">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-[var(--radius-button)] bg-brand-600/20 text-brand-400">
-                <Users className="size-5" />
+        {/* Features — 3 cols */}
+        <section className="mt-20 w-full max-w-5xl mx-auto">
+          <h2 className="font-heading text-2xl font-bold text-center text-[var(--text-primary)] mb-10">
+            Why Private Payroll
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="card-fintech p-6 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-[var(--accent-teal)]/20 text-[var(--accent-teal)]">
+                  <Lock className="size-5" />
+                </div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Private Transfers</h3>
               </div>
-              <h2 className="font-semibold text-slate-100">Employee database</h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Use Tongo to encrypt transfer amounts on-chain. Only sender and recipient see the value — perfect for payroll.
+              </p>
             </div>
-            <p className="text-sm text-slate-400">
-              Add, edit, and remove employees. Search and filter by name, role, or
-              department.
-            </p>
-          </div>
-          <div className="rounded-[var(--radius-card)] border border-slate-800 bg-slate-900 p-6 text-left">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-[var(--radius-button)] bg-violet-600/20 text-violet-400">
-                <LayoutDashboard className="size-5" />
+            <div className="card-fintech p-6 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-amber-500/20 text-[var(--accent-amber)]">
+                  <Zap className="size-5" />
+                </div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Starkzap Integration</h3>
               </div>
-              <h2 className="font-semibold text-slate-100">Transfers & history</h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Sign in with Starkzap for a streamlined experience. Swap and send from one session.
+              </p>
             </div>
-            <p className="text-sm text-slate-400">
-              Send transfers to employee wallets and keep a full history of
-              payments.
-            </p>
+            <div className="card-fintech p-6 rounded-xl">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
+                  <BarChart3 className="size-5" />
+                </div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Company Dashboard</h3>
+              </div>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Add employees, track transfers, and run payroll. All in one place with full history.
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="mt-20 w-full max-w-3xl mx-auto">
+          <h2 className="font-heading text-2xl font-bold text-center text-[var(--text-primary)] mb-10">
+            How It Works
+          </h2>
+          <div className="space-y-6">
+            <div className="flex gap-4 items-start card-fintech p-4 rounded-xl">
+              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold flex items-center justify-center">1</span>
+              <div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Connect your wallet</h3>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                  Use Argent X, Braavos, or Sign in with Starkzap to access the dashboard.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4 items-start card-fintech p-4 rounded-xl">
+              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold flex items-center justify-center">2</span>
+              <div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Add employees</h3>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                  Add team members with wallet addresses and optional Tongo keys for private payments.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4 items-start card-fintech p-4 rounded-xl">
+              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[var(--accent-teal)]/20 text-[var(--accent-teal)] font-bold flex items-center justify-center">3</span>
+              <div>
+                <h3 className="font-semibold text-[var(--text-primary)]">Pay privately</h3>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">
+                  Send salaries via the 4-step wizard. When Tongo is configured, amounts are encrypted on-chain.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-16 flex justify-center">
+          <Link to="/dashboard">
+            <Button size="lg" className="btn-fintech-primary">
+              Go to Dashboard
+              <ArrowRight className="size-5 ml-2" />
+            </Button>
+          </Link>
+        </section>
       </main>
 
-      <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-500">
-        Company Employee Management
+      <footer className="border-t border-[var(--border-card)] py-6 text-center text-sm text-[var(--text-muted)]">
+        Privacy-First Payroll on Starknet · Tongo & Starkzap
       </footer>
     </div>
   );

@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 
 const nav = [
-  { to: "/dashboard?view=overview", icon: LayoutDashboard, label: "Dashboard Overview" },
+  { to: "/dashboard?view=overview", icon: LayoutDashboard, label: "Overview" },
   { to: "/dashboard?view=employees", icon: Users, label: "Employees" },
   { to: "/dashboard?view=transfers", icon: Send, label: "Transfers" },
+  { to: "/dashboard?view=transfers&transfer=1", icon: Send, label: "New Transfer" },
   { to: "/dashboard?view=starkzap", icon: ArrowLeftRight, label: "StarkZap Swap" },
-  { to: "/dashboard?view=tongo", icon: Shield, label: "Tongo Private Transfer" },
+  { to: "/dashboard?view=tongo", icon: Shield, label: "Tongo" },
   { to: "/dashboard?view=history", icon: History, label: "Transfer History" },
   { to: "/dashboard?view=settings", icon: Settings, label: "Settings" },
 ];

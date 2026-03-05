@@ -352,8 +352,15 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [transferStep, setTransferStep] = useState<"form" | "summary">("form");
+  const [transferStep, setTransferStep] = useState<1 | 2 | 3 | 4>(1);
   const [transferPending, setTransferPending] = useState(false);
+  const [transferTxHash, setTransferTxHash] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferCalldataPreview, setTransferCalldataPreview] = useState<{
+    contractAddress: string;
+    entrypoint: string;
+    calldata: string[];
+  } | null>(null);
 
   // URL-driven open: ?add=1 opens employee sheet, ?transfer=1 opens transfer modal
   useEffect(() => {
@@ -467,16 +474,41 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
   }
 
   function openTransferModal() {
-    setTransferStep("form");
+    setTransferStep(1);
     setTransferEmployeeId("");
     setTransferAmount("");
     setTransferNote("");
+    setTransferTxHash(null);
+    setTransferError(null);
+    setTransferCalldataPreview(null);
     setTransferModalOpen(true);
+  }
+
+  function goToStep2() {
+    if (!transferEmployeeId || !selectedEmployee) return;
+    setTransferAmount(selectedEmployee.salary.toString());
+    setTransferStep(2);
+  }
+
+  async function goToStep3() {
+    if (!transferFormValid || !selectedEmployee) return;
+    setTransferError(null);
+    setTransferCalldataPreview(null);
+    if (canUseTongoTransfer && companyTongoKey.trim()) {
+      const amountBaseUnits = BigInt(Math.round(Number(transferAmount) * 1e6));
+      const call = await buildTransferCall(
+        companyTongoKey.trim(),
+        selectedEmployee.tongoPublicKey!.trim(),
+        amountBaseUnits
+      );
+      if (call) setTransferCalldataPreview(call);
+    }
+    setTransferStep(3);
   }
 
   function goToTransferSummary() {
     if (!transferFormValid || !selectedEmployee) return;
-    setTransferStep("summary");
+    setTransferStep(3);
   }
 
   async function confirmTransfer() {
@@ -484,17 +516,21 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
       return;
     const amount = Number(transferAmount);
     const amountBaseUnits = BigInt(Math.round(amount * 1e6));
+    setTransferStep(4);
+    setTransferPending(true);
+    setTransferTxHash(null);
+    setTransferError(null);
 
-    if (canUseTongoTransfer && activeAccount) {
-      setTransferPending(true);
-      try {
+    try {
+      if (canUseTongoTransfer && activeAccount) {
         const call = await buildTransferCall(
           companyTongoKey.trim(),
           selectedEmployee.tongoPublicKey!.trim(),
           amountBaseUnits
         );
         if (!call) {
-          toast("Failed to build Tongo transfer.");
+          setTransferError("Failed to build Tongo transfer.");
+          setTransferPending(false);
           return;
         }
         const executeCall = {
@@ -524,34 +560,33 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           note: transferNote.trim() || undefined,
           private: true,
         });
-        toast("Transfer sent (private, Tongo).");
-        setTransferModalOpen(false);
-        setTransferAmount("");
-        setTransferNote("");
-        setTransferEmployeeId("");
-      } catch (e) {
-        console.error(e);
-        toast(e instanceof Error ? e.message : "Tongo transfer failed.");
-      } finally {
-        setTransferPending(false);
+        setTransferTxHash(txHash);
+        toast("Private transfer sent (Tongo).");
+      } else {
+        const fromAddr = wallet.connected ? wallet.address : "Company";
+        const txHash = mockTxHash();
+        addTransferUnified({
+          type: usingStarkzap ? "starkzap" : "direct",
+          from: fromAddr,
+          to: { name: selectedEmployee.name, address: selectedEmployee.address },
+          amount,
+          token: "USDC",
+          txHash,
+          status: "completed",
+          note: transferNote.trim() || undefined,
+          private: false,
+        });
+        setTransferTxHash(txHash);
+        toast("Transfer recorded.");
       }
-      return;
+    } catch (e) {
+      console.error(e);
+      const errMsg = e instanceof Error ? e.message : "Transfer failed.";
+      setTransferError(errMsg);
+      toast(errMsg);
+    } finally {
+      setTransferPending(false);
     }
-
-    const fromAddr = wallet.connected ? wallet.address : "Company";
-    addTransferUnified({
-      type: usingStarkzap ? "starkzap" : "direct",
-      from: fromAddr,
-      to: { name: selectedEmployee.name, address: selectedEmployee.address },
-      amount,
-      token: "USDC",
-      txHash: mockTxHash(),
-      status: "completed",
-      note: transferNote.trim() || undefined,
-      private: false,
-    });
-    toast("Transfer sent.");
-    setTransferModalOpen(false);
   }
 
   return (
@@ -857,163 +892,212 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
         variant="destructive"
       />
 
-      {/* Transfer modal */}
+      {/* Transfer modal — 4-step wizard */}
       <Modal
         open={transferModalOpen}
         onClose={() => !transferPending && setTransferModalOpen(false)}
         title="New Transfer"
       >
-        {transferStep === "form" ? (
-          <div className="space-y-4">
-            {tongoConfigured && (
+        <div className="space-y-4">
+          {/* Step indicator */}
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={cn(
+                  "h-2 flex-1 rounded-full",
+                  transferStep >= s ? "bg-primary" : "bg-zinc-700"
+                )}
+              />
+            ))}
+          </div>
+
+          {transferStep === 1 && (
+            <>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Company Tongo private key (for private transfers)
+                <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-400 mb-1">
+                  Select employee
                 </label>
+                <select
+                  value={transferEmployeeId}
+                  onChange={(e) => setTransferEmployeeId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-600 bg-zinc-800/50 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Search or select…</option>
+                  {activeEmployees.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name} — {e.role} {e.tongoPublicKey ? "🔒" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {selectedEmployee && (
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 text-sm">
+                  <p className="font-medium text-zinc-100">{selectedEmployee.name}</p>
+                  <p className="text-zinc-400">{selectedEmployee.role} · {selectedEmployee.department}</p>
+                  <p className="mt-1 font-mono text-xs text-zinc-500 truncate" title={selectedEmployee.address}>
+                    {selectedEmployee.address.slice(0, 10)}…{selectedEmployee.address.slice(-8)}
+                  </p>
+                  {selectedEmployee.tongoPublicKey && (
+                    <p className="mt-1 flex items-center gap-1 text-[var(--accent-teal)]">
+                      <Shield className="size-3" /> Private (Tongo) available
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => setTransferModalOpen(false)}>Cancel</Button>
+                <Button disabled={!selectedEmployee} onClick={goToStep2}>Next</Button>
+              </div>
+            </>
+          )}
+
+          {transferStep === 2 && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-400 mb-1">Amount</label>
                 <input
-                  type="password"
-                  value={companyTongoKey}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setCompanyTongoKey(v);
-                    try {
-                      if (v) localStorage.setItem(TONGO_KEY_STORAGE, v);
-                      else localStorage.removeItem(TONGO_KEY_STORAGE);
-                    } catch {}
-                  }}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-[var(--radius-button)] text-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder="Paste to enable private (Tongo) transfers"
+                  type="number"
+                  min={0.0001}
+                  step={0.01}
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-600 bg-zinc-800/50 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="0.00"
+                />
+                {selectedEmployee && (
+                  <p className="mt-1 text-xs text-zinc-500">Salary: {selectedEmployee.salary}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-400 mb-1">Note (optional)</label>
+                <input
+                  type="text"
+                  value={transferNote}
+                  onChange={(e) => setTransferNote(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-600 bg-zinc-800/50 text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Memo"
                 />
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Employee
-              </label>
-              <select
-                value={transferEmployeeId}
-                onChange={(e) => setTransferEmployeeId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-[var(--radius-button)] text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-              >
-                <option value="">Select active employee</option>
-                {activeEmployees.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name} — {e.role}
-                    {e.tongoPublicKey ? " (Tongo)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {selectedEmployee && (
-              <div className="text-sm text-slate-400 space-y-1">
-                <p>
-                  Wallet:{" "}
-                  <span className="font-mono text-slate-300 break-all">
-                    {selectedEmployee.address}
-                  </span>
-                </p>
-                {selectedEmployee.tongoPublicKey && (
-                  <p className="flex items-center gap-1 text-brand-400">
-                    <Shield className="size-3" />
-                    Private transfer (Tongo) available
+              {/* Transfer path indicator */}
+              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                {canUseTongoTransfer ? (
+                  <p className="flex items-center gap-2 text-[var(--accent-teal)] font-medium">
+                    <Shield className="size-4" /> Private via Tongo — amount encrypted on-chain
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-2 text-zinc-400">
+                    <Send className="size-4" /> Standard transfer
+                    {tongoConfigured && !companyTongoKey.trim() && (
+                      <span className="text-xs">(add company Tongo key below for private)</span>
+                    )}
                   </p>
                 )}
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Amount (USD)
-              </label>
-              <input
-                type="number"
-                min={0.01}
-                step={0.01}
-                value={transferAmount}
-                onChange={(e) => setTransferAmount(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-[var(--radius-button)] text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1">
-                Note (optional)
-              </label>
-              <input
-                type="text"
-                value={transferNote}
-                onChange={(e) => setTransferNote(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-[var(--radius-button)] text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                placeholder="Memo"
-              />
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => setTransferModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={!transferFormValid}
-                onClick={goToTransferSummary}
-              >
-                Next: Summary
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="rounded-[var(--radius-button)] bg-slate-800 p-4 space-y-2 text-sm">
-              {canUseTongoTransfer && (
-                <p className="flex items-center gap-1 text-brand-400 font-medium">
-                  <Shield className="size-4" />
-                  Private transfer (Tongo) — amount encrypted on-chain
-                </p>
+              {tongoConfigured && (
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 dark:text-zinc-400 mb-1">
+                    Company Tongo private key (never stored)
+                  </label>
+                  <input
+                    type="password"
+                    value={companyTongoKey}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setCompanyTongoKey(v);
+                      try {
+                        if (v) localStorage.setItem(TONGO_KEY_STORAGE, v);
+                        else localStorage.removeItem(TONGO_KEY_STORAGE);
+                      } catch {}
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-600 bg-zinc-800/50 text-zinc-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Paste to enable private transfers"
+                  />
+                </div>
               )}
-              <p>
-                <span className="text-slate-500">Recipient:</span>{" "}
-                {selectedEmployee?.name}
-              </p>
-              <p>
-                <span className="text-slate-500">Wallet:</span>{" "}
-                <span className="font-mono text-slate-300 break-all">
-                  {selectedEmployee?.address}
-                </span>
-              </p>
-              <p>
-                <span className="text-slate-500">Amount:</span>{" "}
-                ${Number(transferAmount).toLocaleString()} USD
-              </p>
-              {transferNote.trim() && (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => setTransferStep(1)}>Back</Button>
+                <Button disabled={!transferFormValid} onClick={goToStep3}>Next: Review</Button>
+              </div>
+            </>
+          )}
+
+          {transferStep === 3 && (
+            <>
+              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4 space-y-2 text-sm">
+                <p><span className="text-zinc-500">From:</span> {wallet.connected ? `${wallet.address.slice(0, 8)}…${wallet.address.slice(-6)}` : "Company"}</p>
+                <p><span className="text-zinc-500">To:</span> {selectedEmployee?.name}</p>
+                <p><span className="text-zinc-500">Amount:</span> {transferAmount} USDC</p>
                 <p>
-                  <span className="text-slate-500">Note:</span> {transferNote}
+                  <span className="text-zinc-500">Type:</span>{" "}
+                  {canUseTongoTransfer ? (
+                    <span className="text-[var(--accent-teal)]">🔒 Private (Tongo)</span>
+                  ) : (
+                    <span>Standard</span>
+                  )}
                 </p>
+                <p>
+                  <span className="text-zinc-500">Wallet:</span>{" "}
+                  {activeSource === "starkzap" ? "Starkzap ⚡" : activeSource === "mock" ? "Demo" : "Argent X / Braavos"}
+                </p>
+              </div>
+              {transferCalldataPreview && (
+                <div className="rounded-lg border border-zinc-700 bg-zinc-900/80 p-3">
+                  <p className="text-xs font-medium text-zinc-400 mb-2">Transaction preview (calldata)</p>
+                  <pre className="text-xs font-mono text-zinc-300 overflow-x-auto whitespace-pre-wrap break-all">
+                    {JSON.stringify(
+                      {
+                        contractAddress: transferCalldataPreview.contractAddress,
+                        entrypoint: transferCalldataPreview.entrypoint,
+                        calldata: transferCalldataPreview.calldata,
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+                </div>
               )}
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <Button
-                variant="secondary"
-                onClick={() => setTransferStep("form")}
-                disabled={transferPending}
-              >
-                Back
-              </Button>
-              <Button
-                onClick={() => confirmTransfer()}
-                disabled={transferPending}
-              >
-                {transferPending ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    Sending…
-                  </>
-                ) : (
-                  "Confirm Transfer"
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="secondary" onClick={() => setTransferStep(2)} disabled={transferPending}>Back</Button>
+                <Button onClick={() => confirmTransfer()} disabled={transferPending}>
+                  {activeSource === "starkzap" ? "Confirm with Starkzap ⚡" : activeSource === "mock" ? "Confirm (Demo)" : "Confirm with Argent/Braavos"}
+                </Button>
+              </div>
+            </>
+          )}
+
+          {transferStep === 4 && (
+            <>
+              {transferPending && (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <Loader2 className="size-10 animate-spin text-primary" />
+                  <p className="text-zinc-400">Sending transaction…</p>
+                </div>
+              )}
+              {!transferPending && transferTxHash && (
+                <div className="space-y-3">
+                  <p className="text-emerald-400 font-medium">Transfer sent</p>
+                  <div className="flex items-center gap-2">
+                    <TxHashDisplay hash={transferTxHash} truncated={false} />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button onClick={() => { setTransferModalOpen(false); setTransferStep(1); setTransferEmployeeId(""); setTransferAmount(""); setTransferNote(""); }}>Done</Button>
+                  </div>
+                </div>
+              )}
+              {!transferPending && transferError && (
+                <div className="space-y-3">
+                  <p className="text-red-400 font-medium">Failed</p>
+                  <p className="text-sm text-zinc-400">{transferError}</p>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="secondary" onClick={() => setTransferStep(3)}>Back</Button>
+                    <Button onClick={() => confirmTransfer()}>Retry</Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </Modal>
     </>
   );
