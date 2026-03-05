@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEPARTMENTS } from "~/lib/seed";
+import { DEPARTMENTS } from "~/lib/constants";
 
 const walletRegex = /^0x[a-fA-F0-9]{40,64}$/;
 
@@ -12,7 +12,10 @@ export const employeeFormSchema = z.object({
   address: z.string().regex(walletRegex, "Invalid wallet (0x + 40–64 hex chars)").trim(),
   status: z.enum(["active", "inactive"]),
   hireDate: z.string().min(1, "Hire date is required"),
-  tongoPublicKey: z.string().optional(),
+  tongoPublicKey: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^0x[a-fA-F0-9]{40,64}$/.test(v.trim()), "Invalid Tongo key (0x + 40–64 hex chars)"),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;

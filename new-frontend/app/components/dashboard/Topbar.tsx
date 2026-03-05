@@ -20,16 +20,25 @@ const breadcrumbLabels: Record<string, string> = {
   employees: "Employees",
   transfers: "Transfers",
   settings: "Settings",
+  starkzap: "StarkZap Swap",
+  tongo: "Tongo Private Transfer",
+  history: "Transfer History",
 };
 
 export function Topbar({
   view,
   onOpenCommand,
   walletSection,
+  demoMode,
+  onToggleDemoMode,
+  onRunFullDemo,
 }: {
   view: string;
   onOpenCommand: () => void;
   walletSection?: React.ReactNode;
+  demoMode?: boolean;
+  onToggleDemoMode?: (enabled: boolean) => void;
+  onRunFullDemo?: () => void;
 }) {
   const { resolvedTheme, setTheme } = useTheme();
 
@@ -50,6 +59,23 @@ export function Topbar({
         </nav>
       </div>
       <div className="flex items-center gap-2">
+        {onToggleDemoMode != null && (
+          <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <span>Demo</span>
+            <input
+              type="checkbox"
+              checked={demoMode ?? false}
+              onChange={(e) => onToggleDemoMode(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300 text-brand-600 focus:ring-brand-500"
+              aria-label="Toggle demo mode"
+            />
+          </label>
+        )}
+        {demoMode && onRunFullDemo != null && (
+          <Button size="sm" variant="secondary" onClick={onRunFullDemo}>
+            Run Full Demo
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"

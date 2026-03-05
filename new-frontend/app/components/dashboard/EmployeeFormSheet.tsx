@@ -6,8 +6,8 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { employeeFormSchema, type EmployeeFormValues } from "~/lib/employeeSchema";
-import { DEPARTMENTS } from "~/lib/seed";
-import type { Employee } from "~/lib/seed";
+import { DEPARTMENTS } from "~/lib/constants";
+import type { Employee } from "~/state/companyStore";
 
 interface EmployeeFormSheetProps {
   open: boolean;

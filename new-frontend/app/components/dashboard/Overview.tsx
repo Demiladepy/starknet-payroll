@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   AreaChart,
   Area,
@@ -15,6 +15,25 @@ import { Avatar } from "~/components/ui/avatar";
 import { useDashboard } from "~/contexts/DashboardContext";
 import { formatRelativeTime, formatCurrency } from "~/lib/format";
 import { Users, UserCheck, DollarSign, Send } from "lucide-react";
+
+function useCountUp(target: number, durationMs = 800) {
+  const [current, setCurrent] = useState(0);
+  const prevTarget = useRef(0);
+  useEffect(() => {
+    const startVal = prevTarget.current;
+    prevTarget.current = target;
+    const start = performance.now();
+    const frame = (now: number) => {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / durationMs, 1);
+      const easeOut = 1 - (1 - t) * (1 - t);
+      setCurrent(Math.round(startVal + (target - startVal) * easeOut));
+      if (t < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }, [target, durationMs]);
+  return current;
+}
 
 export function Overview() {
   const { employees, transfers } = useDashboard();
@@ -54,7 +73,7 @@ export function Overview() {
   }, [totalPayroll]);
 
   const recentTransfers = useMemo(
-    () => [...transfers].reverse().slice(0, 5),
+    () => [...transfers].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5),
     [transfers]
   );
   const recentHires = useMemo(
@@ -65,28 +84,33 @@ export function Overview() {
     [employees]
   );
 
+  const countTotal = useCountUp(employees.length);
+  const countActive = useCountUp(activeEmployees.length);
+  const countPayroll = useCountUp(totalPayroll, 1000);
+  const countTransferred = useCountUp(totalTransferred, 1000);
+
   const stats = [
     {
       label: "Total Employees",
-      value: employees.length,
+      value: countTotal,
       icon: Users,
       gradient: "from-blue-500/20 to-blue-600/5",
     },
     {
       label: "Active Employees",
-      value: activeEmployees.length,
+      value: countActive,
       icon: UserCheck,
       gradient: "from-emerald-500/20 to-emerald-600/5",
     },
     {
       label: "Monthly Payroll",
-      value: formatCurrency(totalPayroll),
+      value: formatCurrency(countPayroll),
       icon: DollarSign,
       gradient: "from-amber-500/20 to-amber-600/5",
     },
     {
       label: "Total Transferred",
-      value: formatCurrency(totalTransferred),
+      value: formatCurrency(countTransferred),
       icon: Send,
       gradient: "from-violet-500/20 to-violet-600/5",
     },
@@ -193,10 +217,10 @@ export function Overview() {
                     className="flex items-center justify-between rounded-md border border-zinc-100 py-2 px-3 dark:border-zinc-800"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar name={t.employeeName} className="size-8" />
+                      <Avatar name={t.to.name} className="size-8" />
                       <div>
-                        <p className="text-sm font-medium">{t.employeeName}</p>
-                        <p className="caption">{formatRelativeTime(t.date)}</p>
+                        <p className="text-sm font-medium">{t.to.name}</p>
+                        <p className="caption">{formatRelativeTime(t.timestamp)}</p>
                       </div>
                     </div>
                     <span className="font-semibold text-green-600 dark:text-green-400">

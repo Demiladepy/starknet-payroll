@@ -1,11 +1,24 @@
 import { Link } from "react-router";
 import { cn } from "~/lib/utils";
-import { LayoutDashboard, Users, Send, Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Send,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  ArrowLeftRight,
+  Shield,
+  History,
+} from "lucide-react";
 
 const nav = [
   { to: "/dashboard?view=overview", icon: LayoutDashboard, label: "Dashboard Overview" },
   { to: "/dashboard?view=employees", icon: Users, label: "Employees" },
   { to: "/dashboard?view=transfers", icon: Send, label: "Transfers" },
+  { to: "/dashboard?view=starkzap", icon: ArrowLeftRight, label: "StarkZap Swap" },
+  { to: "/dashboard?view=tongo", icon: Shield, label: "Tongo Private Transfer" },
+  { to: "/dashboard?view=history", icon: History, label: "Transfer History" },
   { to: "/dashboard?view=settings", icon: Settings, label: "Settings" },
 ];
 

@@ -14,10 +14,15 @@ import { Sidebar } from "~/components/dashboard/Sidebar";
 import { Topbar } from "~/components/dashboard/Topbar";
 import { CommandPalette } from "~/components/dashboard/CommandPalette";
 import { Overview } from "~/components/dashboard/Overview";
-import { type Employee, type Transfer } from "~/lib/seed";
+import { StarkZapSwapView } from "~/components/dashboard/StarkZapSwapView";
+import { TongoView } from "~/components/dashboard/TongoView";
+import { TransferHistoryView } from "~/components/dashboard/TransferHistoryView";
+import type { Employee } from "~/state/companyStore";
 import type { EmployeeFormValues } from "~/lib/employeeSchema";
+import { useCompanyStore, mockTxHash } from "~/state/companyStore";
 import { isTongoConfigured, buildTransferCall } from "~/lib/tongo";
 import { cn } from "~/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   UserCheck,
@@ -84,6 +89,12 @@ function DashboardLayout() {
   const view = searchParams.get("view") || "overview";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const { toast } = useToast();
+  const demoMode = useCompanyStore((s) => s.demoMode);
+  const setDemoMode = useCompanyStore((s) => s.setDemoMode);
+  const storeWallet = useCompanyStore((s) => s.wallet);
+  const addTransferUnified = useCompanyStore((s) => s.addTransfer);
+  const seedDemoData = useCompanyStore((s) => s.seedDemoData);
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
@@ -91,16 +102,17 @@ function DashboardLayout() {
   const tongoConfigured = isTongoConfigured();
   const connectedViaStarkzap = !!starkzapWallet;
   const connectedViaWallet = isConnected;
-  const anyConnected = connectedViaStarkzap || connectedViaWallet;
-  const [activeSource, setActiveSource] = useState<"wallet" | "starkzap">(
-    connectedViaStarkzap ? "starkzap" : "wallet"
+  const mockConnected = storeWallet.connected && storeWallet.mode === "mock";
+  const anyConnected = connectedViaStarkzap || connectedViaWallet || mockConnected;
+  const [activeSource, setActiveSource] = useState<"wallet" | "starkzap" | "mock">(
+    mockConnected ? "mock" : connectedViaStarkzap ? "starkzap" : "wallet"
   );
 
   useEffect(() => {
-    // Keep active source valid if one disconnects.
-    if (activeSource === "starkzap" && !connectedViaStarkzap) setActiveSource("wallet");
-    if (activeSource === "wallet" && !connectedViaWallet && connectedViaStarkzap) setActiveSource("starkzap");
-  }, [activeSource, connectedViaStarkzap, connectedViaWallet]);
+    if (activeSource === "starkzap" && !connectedViaStarkzap) setActiveSource(mockConnected ? "mock" : "wallet");
+    if (activeSource === "wallet" && !connectedViaWallet && (connectedViaStarkzap || mockConnected)) setActiveSource(connectedViaStarkzap ? "starkzap" : "mock");
+    if (activeSource === "mock" && !mockConnected) setActiveSource(connectedViaStarkzap ? "starkzap" : "wallet");
+  }, [activeSource, connectedViaStarkzap, connectedViaWallet, mockConnected]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -121,15 +133,64 @@ function DashboardLayout() {
     return () => document.removeEventListener("keydown", down);
   }, [navigate]);
 
+  async function runFullDemo() {
+    seedDemoData();
+    toast("Step 1: Seeding demo data…");
+    await new Promise((r) => setTimeout(r, 2000));
+    const state = useCompanyStore.getState();
+    const emp = state.employees[0] || {
+      name: "Demo User",
+      address: "0x04a1d2c3b4a5968778695a4b3c2d1e0f04a17e3b04a1d2c3b4a5968778695a4b",
+    };
+    const fromAddr = storeWallet.connected ? storeWallet.address : "Company";
+    toast("Step 2: StarkZap transfer…");
+    addTransferUnified({
+      type: "starkzap",
+      from: fromAddr,
+      to: { name: emp.name, address: emp.address },
+      amount: 2500,
+      token: "STRK",
+      txHash: mockTxHash(),
+      status: "completed",
+      private: false,
+    });
+    await new Promise((r) => setTimeout(r, 2000));
+    toast("Step 3: Tongo private transfer…");
+    addTransferUnified({
+      type: "tongo",
+      from: "Tongo Pool",
+      to: { name: emp.name, address: emp.address },
+      amount: 1500,
+      token: "USDC",
+      txHash: mockTxHash(),
+      status: "completed",
+      private: true,
+    });
+    await new Promise((r) => setTimeout(r, 2000));
+    toast("Step 4: Opening transfer history.");
+    navigate("/dashboard?view=history");
+  }
+
   const walletSection = (
     <>
       {tongoConfigured && (
         <span className="text-xs text-zinc-500">Tongo</span>
       )}
-      {/* Dual system: wallet + Starkzap always visible; choose which is active for execution */}
       <div className="flex items-center gap-2">
+        {/* Mock wallet (demo mode) */}
+        {mockConnected && (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 px-2 py-1">
+            <span className="text-xs font-medium text-emerald-500/90">Demo</span>
+            <span className="text-xs font-mono text-zinc-500 truncate max-w-[90px]" title={storeWallet.address}>
+              {storeWallet.address.slice(0, 6)}…{storeWallet.address.slice(-4)}
+            </span>
+            <span className="text-xs text-zinc-400">
+              {storeWallet.balances.STRK.toLocaleString()} STRK
+            </span>
+          </div>
+        )}
         {/* Injected wallet */}
-        {!connectedViaWallet ? (
+        {!connectedViaWallet && !mockConnected && (
           <Button
             size="sm"
             variant="outline"
@@ -139,7 +200,8 @@ function DashboardLayout() {
             <Wallet className="size-4 mr-1" />
             Connect wallet
           </Button>
-        ) : (
+        )}
+        {connectedViaWallet && !mockConnected && (
           <div className="flex items-center gap-2 rounded-md border border-zinc-200 px-2 py-1 dark:border-zinc-800">
             <span className="text-xs font-mono text-zinc-500 truncate max-w-[90px]" title={address}>
               {address?.slice(0, 6)}…{address?.slice(-4)}
@@ -210,6 +272,9 @@ function DashboardLayout() {
             view={view}
             onOpenCommand={() => setCommandOpen(true)}
             walletSection={walletSection}
+            demoMode={demoMode}
+            onToggleDemoMode={setDemoMode}
+            onRunFullDemo={runFullDemo}
           />
           <main className="flex-1 p-6 overflow-auto">
             {view === "overview" && <Overview />}
@@ -219,6 +284,9 @@ function DashboardLayout() {
             {(view === "employees" || view === "transfers") && (
               <DashboardContent activeSource={activeSource} />
             )}
+            {view === "starkzap" && <StarkZapSwapView />}
+            {view === "tongo" && <TongoView />}
+            {view === "history" && <TransferHistoryView />}
           </main>
         </div>
       </div>
@@ -243,8 +311,10 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
     addEmployee,
     updateEmployee,
     removeEmployee,
-    addTransfer,
+    addTransfer: addTransferLegacy,
   } = useDashboard();
+  const wallet = useCompanyStore((s) => s.wallet);
+  const addTransferUnified = useCompanyStore((s) => s.addTransfer);
   const [search, setSearch] = useState("");
   const [employeeSheetOpen, setEmployeeSheetOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -405,12 +475,17 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
         } else if (account) {
           await account.execute(executeCall);
         }
-        addTransfer({
-          employeeId: selectedEmployee.id,
-          employeeName: selectedEmployee.name,
+        const fromAddr = wallet.connected ? wallet.address : "Company";
+        addTransferUnified({
+          type: "tongo",
+          from: fromAddr,
+          to: { name: selectedEmployee.name, address: selectedEmployee.address },
           amount,
-          note: transferNote.trim(),
-          address: selectedEmployee.address,
+          token: "USDC",
+          txHash: mockTxHash(),
+          status: "completed",
+          note: transferNote.trim() || undefined,
+          private: true,
         });
         toast("Transfer sent (private, Tongo).");
         setTransferModalOpen(false);
@@ -426,12 +501,17 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
       return;
     }
 
-    addTransfer({
-      employeeId: selectedEmployee.id,
-      employeeName: selectedEmployee.name,
+    const fromAddr = wallet.connected ? wallet.address : "Company";
+    addTransferUnified({
+      type: usingStarkzap ? "starkzap" : "direct",
+      from: fromAddr,
+      to: { name: selectedEmployee.name, address: selectedEmployee.address },
       amount,
-      note: transferNote.trim(),
-      address: selectedEmployee.address,
+      token: "USDC",
+      txHash: mockTxHash(),
+      status: "completed",
+      note: transferNote.trim() || undefined,
+      private: false,
     });
     toast("Transfer sent.");
     setTransferModalOpen(false);
@@ -544,11 +624,16 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map((emp) => (
-                    <tr
-                      key={emp.id}
-                      className="border-b border-slate-800 hover:bg-slate-800/50"
-                    >
+                  <AnimatePresence mode="popLayout">
+                    {filteredEmployees.map((emp) => (
+                      <motion.tr
+                        key={emp.id}
+                        layout
+                        initial={{ opacity: 1 }}
+                        exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+                        transition={{ duration: 0.2 }}
+                        className="border-b border-slate-800 hover:bg-slate-800/50"
+                      >
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-2">
                           <span className="flex size-8 items-center justify-center rounded-[var(--radius-button)] bg-slate-700 text-xs font-medium">
@@ -579,11 +664,38 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                       </td>
                       <td className="py-3 pr-4">{emp.hireDate}</td>
                       <td className="py-3 text-right">
+                        {emp.status === "active" && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mr-1"
+                              onClick={() => {
+                                setTransferEmployeeId(emp.id);
+                                setTransferStep("form");
+                                setTransferModalOpen(true);
+                              }}
+                              title="Pay / Transfer"
+                            >
+                              <Send className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mr-1 text-violet-400 hover:text-violet-300 hover:bg-violet-600/20"
+                              onClick={() => navigate(`/dashboard?view=tongo&to=${encodeURIComponent(emp.address)}`)}
+                              title="Private Transfer (Tongo)"
+                            >
+                              <Shield className="size-4" />
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="mr-1"
                           onClick={() => openEditEmployee(emp)}
+                          title="Edit"
                         >
                           <Pencil className="size-4" />
                         </Button>
@@ -592,12 +704,14 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                           size="sm"
                           className="text-red-400 hover:text-red-300 hover:bg-red-600/20"
                           onClick={() => setDeleteTarget(emp)}
+                          title="Delete"
                         >
                           <Trash2 className="size-4" />
                         </Button>
                       </td>
-                    </tr>
-                  ))}
+                    </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
@@ -611,7 +725,7 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           </CardContent>
         </Card>
 
-        {/* Transfer history */}
+        {/* Transfer history (unified) */}
         <Card className="bg-slate-900 border-slate-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -630,10 +744,12 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                   <thead>
                     <tr className="border-b border-slate-700 text-left text-slate-400">
                       <th className="pb-3 pr-4">Date</th>
+                      <th className="pb-3 pr-4">Type</th>
                       <th className="pb-3 pr-4">Recipient</th>
                       <th className="pb-3 pr-4">Amount</th>
-                      <th className="pb-3 pr-4">Note</th>
-                      <th className="pb-3">Wallet</th>
+                      <th className="pb-3 pr-4">Token</th>
+                      <th className="pb-3 pr-4">Status</th>
+                      <th className="pb-3">Tx / Wallet</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -643,15 +759,39 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                         className="border-b border-slate-800 hover:bg-slate-800/50"
                       >
                         <td className="py-3 pr-4">
-                          {new Date(t.date).toLocaleString()}
+                          {new Date(t.timestamp).toLocaleString()}
                         </td>
-                        <td className="py-3 pr-4">{t.employeeName}</td>
+                        <td className="py-3 pr-4">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-xs font-medium",
+                              t.type === "starkzap" && "bg-amber-600/20 text-amber-400",
+                              t.type === "tongo" && "bg-violet-600/20 text-violet-400",
+                              t.type === "direct" && "bg-blue-600/20 text-blue-400"
+                            )}
+                          >
+                            {t.type}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">{t.to.name}</td>
                         <td className="py-3 pr-4">
                           ${t.amount.toLocaleString()}
                         </td>
-                        <td className="py-3 pr-4">{t.note || "—"}</td>
+                        <td className="py-3 pr-4">{t.token}</td>
+                        <td className="py-3 pr-4">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded text-xs",
+                              t.status === "completed" && "bg-emerald-600/20 text-emerald-400",
+                              t.status === "pending" && "bg-amber-600/20 text-amber-400",
+                              t.status === "failed" && "bg-red-600/20 text-red-400"
+                            )}
+                          >
+                            {t.status}
+                          </span>
+                        </td>
                         <td className="py-3">
-                          <CopyWallet value={t.address} />
+                          <CopyWallet value={t.txHash} />
                         </td>
                       </tr>
                     ))}
