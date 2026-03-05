@@ -93,6 +93,7 @@ function DashboardLayout() {
   const demoMode = useCompanyStore((s) => s.demoMode);
   const setDemoMode = useCompanyStore((s) => s.setDemoMode);
   const storeWallet = useCompanyStore((s) => s.wallet);
+  const setStarkzapWalletStore = useCompanyStore((s) => s.setStarkzapWallet);
   const addTransferUnified = useCompanyStore((s) => s.addTransfer);
   const seedDemoData = useCompanyStore((s) => s.seedDemoData);
   const { address, isConnected } = useAccount();
@@ -113,6 +114,13 @@ function DashboardLayout() {
     if (activeSource === "wallet" && !connectedViaWallet && (connectedViaStarkzap || mockConnected)) setActiveSource(connectedViaStarkzap ? "starkzap" : "mock");
     if (activeSource === "mock" && !mockConnected) setActiveSource(connectedViaStarkzap ? "starkzap" : "wallet");
   }, [activeSource, connectedViaStarkzap, connectedViaWallet, mockConnected]);
+
+  useEffect(() => {
+    // Mirror Starkzap connection into our global wallet state so other pages work consistently.
+    if (starkzapWallet?.address) {
+      setStarkzapWalletStore(starkzapWallet.address, demoMode ? { STRK: 5000, ETH: 2.5, USDC: 10000 } : undefined);
+    }
+  }, [starkzapWallet?.address, setStarkzapWalletStore, demoMode]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -224,7 +232,16 @@ function DashboardLayout() {
         {!connectedViaStarkzap ? (
           <Button
             size="sm"
-            onClick={connectStarkzap}
+            onClick={async () => {
+              try {
+                toast("Opening Starkzap…");
+                const w = await connectStarkzap();
+                setStarkzapWalletStore(w.address, demoMode ? { STRK: 5000, ETH: 2.5, USDC: 10000 } : undefined);
+                toast(`Starkzap connected: ${w.address.slice(0, 6)}…${w.address.slice(-4)}`);
+              } catch (e) {
+                toast(e instanceof Error ? e.message : "Starkzap sign-in failed. Enable Demo Mode to simulate.");
+              }
+            }}
             disabled={starkzapConnecting}
             className="bg-amber-600 hover:bg-amber-700 text-white border-0"
           >
@@ -261,7 +278,7 @@ function DashboardLayout() {
 
   return (
     <>
-      <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((s) => !s)}
@@ -522,56 +539,56 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
     <div className="max-w-6xl mx-auto space-y-8">
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-[var(--radius-button)] bg-brand-600/20 text-brand-400">
+                <div className="p-2 rounded-md bg-blue-500/15 text-blue-500">
                   <Users className="size-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Total Employees</p>
-                  <p className="text-2xl font-bold">{employees.length}</p>
+                  <p className="text-sm text-zinc-500">Total Employees</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{employees.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-[var(--radius-button)] bg-emerald-600/20 text-emerald-400">
+                <div className="p-2 rounded-md bg-emerald-500/15 text-emerald-500">
                   <UserCheck className="size-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Active Employees</p>
-                  <p className="text-2xl font-bold">{activeEmployees.length}</p>
+                  <p className="text-sm text-zinc-500">Active Employees</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{activeEmployees.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-[var(--radius-button)] bg-amber-600/20 text-amber-400">
+                <div className="p-2 rounded-md bg-amber-500/15 text-amber-500">
                   <DollarSign className="size-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Total Monthly Payroll</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-sm text-zinc-500">Total Monthly Payroll</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                     ${totalPayroll.toLocaleString()}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900 border-slate-800">
+          <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-[var(--radius-button)] bg-violet-600/20 text-violet-400">
+                <div className="p-2 rounded-md bg-violet-500/15 text-violet-500">
                   <Send className="size-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-400">Total Transferred</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-sm text-zinc-500">Total Transferred</p>
+                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                     ${totalTransferred.toLocaleString()}
                   </p>
                 </div>
@@ -581,7 +598,7 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
         </div>
 
         {/* Employees section */}
-        <Card className="bg-slate-900 border-slate-800 mb-8">
+        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30 mb-8">
           <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
             <CardTitle className="flex items-center gap-2">
               <Users className="size-5" />
@@ -600,19 +617,19 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           </CardHeader>
           <CardContent>
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
               <input
                 type="text"
                 placeholder="Search by name, role, or department..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-[var(--radius-button)] text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full pl-10 pr-4 py-2 bg-white/70 dark:bg-zinc-900/60 border border-zinc-200/70 dark:border-zinc-800/70 rounded-md text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700 text-left text-slate-400">
+                  <tr className="border-b border-zinc-200/70 dark:border-zinc-800/70 text-left text-zinc-500">
                     <th className="pb-3 pr-4">Name</th>
                     <th className="pb-3 pr-4">Role</th>
                     <th className="pb-3 pr-4">Department</th>
@@ -632,20 +649,20 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0, height: 0, overflow: "hidden" }}
                         transition={{ duration: 0.2 }}
-                        className="border-b border-slate-800 hover:bg-slate-800/50"
+                        className="border-b border-zinc-200/50 dark:border-zinc-800/50 hover:bg-zinc-100/60 dark:hover:bg-zinc-900/40"
                       >
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-2">
-                          <span className="flex size-8 items-center justify-center rounded-[var(--radius-button)] bg-slate-700 text-xs font-medium">
+                            <span className="flex size-8 items-center justify-center rounded-md bg-zinc-200/70 dark:bg-zinc-800/70 text-xs font-medium text-zinc-700 dark:text-zinc-200">
                             {emp.avatar}
                           </span>
-                          {emp.name}
+                            <span className="text-zinc-900 dark:text-zinc-100">{emp.name}</span>
                         </div>
                       </td>
-                      <td className="py-3 pr-4">{emp.role}</td>
-                      <td className="py-3 pr-4">{emp.department}</td>
+                      <td className="py-3 pr-4 text-zinc-700 dark:text-zinc-200">{emp.role}</td>
+                      <td className="py-3 pr-4 text-zinc-700 dark:text-zinc-200">{emp.department}</td>
                       <td className="py-3 pr-4">
-                        ${emp.salary.toLocaleString()}
+                        <span className="text-zinc-900 dark:text-zinc-100">${emp.salary.toLocaleString()}</span>
                       </td>
                       <td className="py-3 pr-4">
                         <CopyWallet value={emp.address} />
@@ -653,16 +670,16 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                       <td className="py-3 pr-4">
                         <span
                           className={cn(
-                            "px-2 py-0.5 rounded-[var(--radius-button)] text-xs font-medium",
+                            "px-2 py-0.5 rounded-md text-xs font-medium",
                             emp.status === "active"
                               ? "bg-emerald-600/20 text-emerald-400"
-                              : "bg-slate-600/50 text-slate-400"
+                              : "bg-zinc-600/10 text-zinc-500 dark:text-zinc-400"
                           )}
                         >
                           {emp.status}
                         </span>
                       </td>
-                      <td className="py-3 pr-4">{emp.hireDate}</td>
+                      <td className="py-3 pr-4 text-zinc-700 dark:text-zinc-200">{emp.hireDate}</td>
                       <td className="py-3 text-right">
                         {emp.status === "active" && (
                           <>

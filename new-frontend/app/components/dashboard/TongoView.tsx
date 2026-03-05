@@ -161,14 +161,14 @@ export function TongoView() {
         </Card>
       )}
 
-      <Card className="max-w-lg mx-auto border-zinc-200 dark:border-zinc-800 dark:bg-zinc-900/50">
+      <Card className="max-w-lg mx-auto border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Shield className="size-5 text-violet-400" />
               Tongo
             </CardTitle>
-            <div className="flex rounded-lg bg-zinc-800 p-1">
+            <div className="flex rounded-lg bg-zinc-100/70 dark:bg-zinc-900/60 p-1 border border-zinc-200/70 dark:border-zinc-800/70">
               <button
                 type="button"
                 onClick={() => setTab("deposit")}

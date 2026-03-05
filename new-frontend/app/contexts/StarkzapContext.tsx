@@ -14,7 +14,7 @@ type StarkzapContextValue = {
   /** Whether we are currently connecting (onboard in progress) */
   connecting: boolean;
   /** Connect via Starkzap using a demo in-memory signer (for hackathon visibility) */
-  connectStarkzap: () => Promise<void>;
+  connectStarkzap: () => Promise<WalletInterface>;
   /** Disconnect Starkzap wallet */
   disconnectStarkzap: () => Promise<void>;
   /** SDK instance (sepolia) for use in transfer flows if needed */
@@ -72,8 +72,10 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
         // Still set wallet so UI shows Starkzap connected; deploy may fail without gas
       });
       setWallet(w);
+      return w;
     } catch (e) {
       console.error("Starkzap connect failed:", e);
+      throw e instanceof Error ? e : new Error("Starkzap connect failed");
     } finally {
       setConnecting(false);
     }

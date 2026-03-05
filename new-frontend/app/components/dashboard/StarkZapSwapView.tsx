@@ -76,7 +76,7 @@ export function StarkZapSwapView() {
         </Card>
       )}
 
-      <Card className="max-w-md mx-auto border-zinc-200 dark:border-zinc-800">
+      <Card className="max-w-md mx-auto border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ArrowLeftRight className="size-5" />

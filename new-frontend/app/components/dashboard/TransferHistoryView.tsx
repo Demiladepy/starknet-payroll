@@ -71,7 +71,7 @@ export function TransferHistoryView() {
     <div className="space-y-6">
       <h1 className="page-title">Transfer History</h1>
 
-      <Card className="border-zinc-200 dark:border-zinc-800">
+      <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="size-5" />
@@ -96,7 +96,7 @@ export function TransferHistoryView() {
         </CardContent>
       </Card>
 
-      <Card className="border-zinc-200 dark:border-zinc-800">
+      <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
           <CardTitle className="flex items-center gap-2">
             <History className="size-5" />

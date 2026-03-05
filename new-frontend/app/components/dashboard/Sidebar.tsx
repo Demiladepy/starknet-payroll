@@ -34,20 +34,23 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex flex-col border-r border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 transition-[width] duration-200",
+        "flex flex-col border-r border-zinc-200/70 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:border-zinc-800/70 dark:bg-zinc-950/40 transition-[width] duration-200",
         collapsed ? "w-16" : "w-56"
       )}
     >
-      <div className="flex h-14 items-center border-b border-zinc-200 dark:border-zinc-800 px-3">
+      <div className="flex h-14 items-center border-b border-zinc-200/70 dark:border-zinc-800/70 px-3">
         {!collapsed && (
-          <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-            Company
-          </span>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="size-7 rounded-md bg-gradient-to-br from-blue-500 to-violet-500" />
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+              Company
+            </span>
+          </div>
         )}
         <button
           type="button"
           onClick={onToggle}
-          className="ml-auto p-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          className="ml-auto p-2 rounded-md hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
@@ -61,13 +64,13 @@ export function Sidebar({
               key={to}
               to={to}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-primary/10 text-primary dark:bg-primary/20"
-                  : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                  : "text-zinc-600 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
               )}
             >
-              <Icon className="size-5 shrink-0" />
+              <Icon className={cn("size-5 shrink-0", isActive ? "text-primary" : "text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200")} />
               {!collapsed && <span>{label}</span>}
             </Link>
           );
