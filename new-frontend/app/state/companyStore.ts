@@ -123,8 +123,9 @@ function randomHex(bytes: number): string {
     .join("");
 }
 
+/** Mock tx hash for non–on-chain transfers; prefix so Starkscan is not linked. */
 export function mockTxHash(): string {
-  return `0x${randomHex(32)}`;
+  return `0xMOCK_${Date.now().toString(16)}${randomHex(4)}`;
 }
 
 export function mockSecretNote(): string {

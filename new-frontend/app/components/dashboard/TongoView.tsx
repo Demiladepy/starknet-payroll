@@ -132,7 +132,12 @@ export function TongoView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Tongo Private Transfer</h1>
+      <div>
+        <h1 className="page-title">Tongo Private Transfer</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Send payments with privacy — no on-chain link between sender and recipient
+        </p>
+      </div>
 
       <Card className="border-violet-500/30 bg-violet-500/5">
         <CardContent className="pt-6">

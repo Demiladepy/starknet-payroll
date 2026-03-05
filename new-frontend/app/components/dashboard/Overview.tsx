@@ -118,13 +118,18 @@ export function Overview() {
 
   return (
     <div className="space-y-8">
-      <h1 className="page-title">Dashboard Overview</h1>
+      <div>
+        <h1 className="page-title">Dashboard Overview</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Your payroll and team at a glance
+        </p>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, gradient }) => (
           <Card
             key={label}
-            className="overflow-hidden border-zinc-200 dark:border-zinc-800"
+            className="overflow-hidden border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm"
           >
             <CardContent className="pt-6">
               <div className={`rounded-lg bg-gradient-to-br ${gradient} p-4`}>
@@ -146,7 +151,7 @@ export function Overview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="section-header">
               Monthly payroll trend
@@ -179,7 +184,7 @@ export function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="section-header">
               Department salary distribution
@@ -202,19 +207,19 @@ export function Overview() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="section-header">Recent transfers</CardTitle>
           </CardHeader>
           <CardContent>
             {recentTransfers.length === 0 ? (
-              <p className="caption py-4">No transfers yet.</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">No transfers yet. Run a payment from Employees or Transfers to see activity here.</p>
             ) : (
               <ul className="space-y-3">
                 {recentTransfers.map((t) => (
                   <li
                     key={t.id}
-                    className="flex items-center justify-between rounded-md border border-zinc-100 py-2 px-3 dark:border-zinc-800"
+                    className="flex items-center justify-between rounded-md border border-zinc-200/70 dark:border-zinc-800/70 py-2 px-3 bg-zinc-50/50 dark:bg-zinc-900/30"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar name={t.to.name} className="size-8" />
@@ -233,7 +238,7 @@ export function Overview() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200 dark:border-zinc-800">
+        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
           <CardHeader>
             <CardTitle className="section-header">Recent hires</CardTitle>
           </CardHeader>
@@ -242,18 +247,18 @@ export function Overview() {
               {recentHires.map((e) => (
                 <div
                   key={e.id}
-                  className="flex items-center gap-3 rounded-md border border-zinc-100 p-3 dark:border-zinc-800"
+                  className="flex items-center gap-3 rounded-md border border-zinc-200/70 dark:border-zinc-800/70 p-3 bg-zinc-50/50 dark:bg-zinc-900/30"
                 >
                   <Avatar name={e.name} className="size-10" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{e.name}</p>
+                    <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{e.name}</p>
                     <p className="caption truncate">{e.role}</p>
                   </div>
                 </div>
               ))}
             </div>
             {recentHires.length === 0 && (
-              <p className="caption py-4">No employees yet.</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">No team members yet. Add your first employee to get started.</p>
             )}
           </CardContent>
         </Card>

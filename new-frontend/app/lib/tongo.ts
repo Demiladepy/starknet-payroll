@@ -7,6 +7,16 @@
 import { contractAddresses } from "./starknet";
 
 const TONGO_ADDRESS = contractAddresses.tongo;
+const TONGO_WRAPPER = contractAddresses.tongoWrapper;
+
+/** Tongo config for UI and transfer logic. */
+export const TONGO_CONFIG = {
+  contractAddress: TONGO_ADDRESS ?? "",
+  wrapperAddress: TONGO_WRAPPER ?? "",
+  get isConfigured(): boolean {
+    return Boolean(this.contractAddress && this.wrapperAddress);
+  },
+};
 
 export function getTongoContractAddress(): string | null {
   return TONGO_ADDRESS || null;
@@ -14,6 +24,21 @@ export function getTongoContractAddress(): string | null {
 
 export function isTongoConfigured(): boolean {
   return !!TONGO_ADDRESS;
+}
+
+/**
+ * Whether a transfer can use the private (Tongo) path.
+ * Requires: Tongo configured, employee has Tongo public key, company has sender key.
+ */
+export function canUsePrivateTransfer(
+  employee: { tongoPublicKey?: string },
+  hasSenderKey: boolean
+): boolean {
+  return (
+    isTongoConfigured() &&
+    Boolean(employee.tongoPublicKey) &&
+    hasSenderKey
+  );
 }
 
 /** Format small units (e.g. 6 decimals) to display string */

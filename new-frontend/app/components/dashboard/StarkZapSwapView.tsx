@@ -64,13 +64,18 @@ export function StarkZapSwapView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">StarkZap Swap</h1>
+      <div>
+        <h1 className="page-title">StarkZap Swap</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Swap STRK, ETH, and USDC on StarkNet
+        </p>
+      </div>
 
       {!connected && (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardContent className="pt-6">
             <p className="text-sm text-amber-600 dark:text-amber-400">
-              Connect a wallet (or enable Demo Mode) to swap tokens.
+              Connect a wallet or enable Demo Mode in the header to swap tokens.
             </p>
           </CardContent>
         </Card>
@@ -115,7 +120,7 @@ export function StarkZapSwapView() {
             </div>
             {connected && (
               <p className="text-xs text-zinc-500">
-                Balance: {fromBalance.toLocaleString()} <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={setMax}>MAX</Button>
+                Balance: {fromBalance.toLocaleString()} <Button type="button" variant="ghost" className="h-auto p-0 text-xs text-primary hover:underline" onClick={setMax}>MAX</Button>
               </p>
             )}
           </div>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Modal } from "~/components/ui/modal";
 import { AlertDialog } from "~/components/ui/alert-dialog";
 import { CopyWallet } from "~/components/ui/copy-wallet";
+import { TxHashDisplay } from "~/components/ui/tx-hash-display";
 import { EmployeeFormSheet } from "~/components/dashboard/EmployeeFormSheet";
 import { DashboardProvider, useDashboard } from "~/contexts/DashboardContext";
 import { useStarkzap } from "~/contexts/StarkzapContext";
@@ -296,7 +297,21 @@ function DashboardLayout() {
           <main className="flex-1 p-6 overflow-auto">
             {view === "overview" && <Overview />}
             {view === "settings" && (
-              <div className="page-title">Settings</div>
+              <div className="space-y-6">
+                <div>
+                  <h1 className="page-title">Settings</h1>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    Configure your workspace and preferences
+                  </p>
+                </div>
+                <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm max-w-xl">
+                  <CardContent className="pt-6">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      More settings options will appear here. For now, use the Demo toggle in the header to try the app with sample data, or connect a wallet to use live features.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
             )}
             {(view === "employees" || view === "transfers") && (
               <DashboardContent activeSource={activeSource} />
@@ -316,7 +331,7 @@ function DashboardLayout() {
   );
 }
 
-function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap" }) {
+function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap" | "mock" }) {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -487,10 +502,15 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           entrypoint: call.entrypoint,
           calldata: call.calldata,
         };
+        let txHash: string;
         if (usingStarkzap && starkzapWallet) {
-          await starkzapWallet.execute([executeCall]);
+          const result = await starkzapWallet.execute([executeCall]);
+          txHash = (result as { transaction_hash?: string })?.transaction_hash ?? mockTxHash();
         } else if (account) {
-          await account.execute(executeCall);
+          const result = await account.execute(executeCall);
+          txHash = (result as { transaction_hash?: string })?.transaction_hash ?? mockTxHash();
+        } else {
+          txHash = mockTxHash();
         }
         const fromAddr = wallet.connected ? wallet.address : "Company";
         addTransferUnified({
@@ -499,7 +519,7 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           to: { name: selectedEmployee.name, address: selectedEmployee.address },
           amount,
           token: "USDC",
-          txHash: mockTxHash(),
+          txHash,
           status: "completed",
           note: transferNote.trim() || undefined,
           private: true,
@@ -735,8 +755,8 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
             {filteredEmployees.length === 0 && (
               <p className="py-8 text-center text-slate-500">
                 {search.trim()
-                  ? "No employees match your search."
-                  : "No employees yet. Add one to get started."}
+                  ? "No employees match your search. Try a different term."
+                  : "No team members yet. Click Add Employee to add your first."}
               </p>
             )}
           </CardContent>
@@ -753,7 +773,7 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
           <CardContent>
             {transfers.length === 0 ? (
               <p className="py-6 text-center text-slate-500">
-                No transfers yet. Use &quot;New Transfer&quot; to send a payment.
+                No transfers yet. Use New Transfer or pay an employee from the table to see history here.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -808,7 +828,7 @@ function DashboardContent({ activeSource }: { activeSource: "wallet" | "starkzap
                           </span>
                         </td>
                         <td className="py-3">
-                          <CopyWallet value={t.txHash} />
+                          <TxHashDisplay hash={t.txHash} />
                         </td>
                       </tr>
                     ))}

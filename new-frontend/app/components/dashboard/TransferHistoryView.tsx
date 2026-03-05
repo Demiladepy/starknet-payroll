@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { CopyWallet } from "~/components/ui/copy-wallet";
+import { TxHashDisplay } from "~/components/ui/tx-hash-display";
 import { useCompanyStore, type UnifiedTransfer, type TransferType, type TokenSymbol } from "~/state/companyStore";
 import { formatRelativeTime } from "~/lib/format";
 import { History, Download } from "lucide-react";
@@ -69,7 +70,12 @@ export function TransferHistoryView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="page-title">Transfer History</h1>
+      <div>
+        <h1 className="page-title">Transfer History</h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          All payments — direct, StarkZap, and Tongo — in one place
+        </p>
+      </div>
 
       <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/30">
         <CardHeader>
@@ -141,7 +147,7 @@ export function TransferHistoryView() {
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
-            <p className="py-8 text-center text-zinc-500">No transfers match the filters.</p>
+            <p className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">No transfers match the filters. Try changing the type or token filter.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -178,7 +184,7 @@ export function TransferHistoryView() {
                         <StatusBadge status={t.status} />
                       </td>
                       <td className="py-3">
-                        <CopyWallet value={t.txHash} />
+                        <TxHashDisplay hash={t.txHash} />
                       </td>
                     </tr>
                   ))}

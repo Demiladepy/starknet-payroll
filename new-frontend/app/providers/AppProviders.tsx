@@ -4,6 +4,9 @@ import {
   StarknetConfig,
   jsonRpcProvider,
   useInjectedConnectors,
+  argent,
+  braavos,
+  starkscan,
 } from "@starknet-react/core";
 import { sepolia } from "@starknet-react/chains";
 import { StarkzapProvider } from "~/contexts/StarkzapContext";
@@ -14,18 +17,20 @@ const queryClient = new QueryClient({
   },
 });
 
-/** Starknet v9 only supports RPC spec 0.9.0 / 0.10.0; publicProvider() uses 0.8.1 and throws. */
+/** Starknet v9 RPC; specVersion required for current starknet.js. */
 const starknetProvider = jsonRpcProvider({
   rpc: (chain) => {
-    const rpcs = chain.rpcUrls?.public?.http ?? [];
-    const nodeUrl = rpcs[0] ?? "https://starknet-sepolia.public.blastapi.io";
+    const nodeUrl =
+      import.meta.env.VITE_STARKNET_RPC_URL ??
+      chain.rpcUrls?.public?.http?.[0] ??
+      "https://starknet-sepolia.public.blastapi.io";
     return { nodeUrl, specVersion: "0.10.0" as const };
   },
 });
 
 function StarknetConnectorsClient({ children }: { children: ReactNode }) {
   const { connectors } = useInjectedConnectors({
-    recommended: [],
+    recommended: [argent(), braavos()],
     includeRecommended: "onlyIfNoConnectors",
   });
 
@@ -35,6 +40,8 @@ function StarknetConnectorsClient({ children }: { children: ReactNode }) {
       provider={starknetProvider}
       connectors={connectors}
       queryClient={queryClient}
+      explorer={starkscan}
+      autoConnect
     >
       {children}
     </StarknetConfig>
