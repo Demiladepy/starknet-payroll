@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
 import {
   LayoutDashboard,
@@ -8,7 +8,6 @@ import {
   Lock,
   BarChart3,
 } from "lucide-react";
-import { useState, useEffect } from "react";
 
 export function meta() {
   return [
@@ -21,25 +20,34 @@ export function meta() {
   ];
 }
 
-/** Lazy-loaded so wallet/Starkzap hooks only run in browser (providers are skipped during SSR). */
+/** Static CTAs so SSR never runs wallet/Starkzap code. Connect on the dashboard. */
 function HomeHeroCTAsSafe() {
-  const [ClientCTAs, setClientCTAs] = useState<React.ComponentType | null>(null);
-  useEffect(() => {
-    import("./HomeHeroCTAs.client").then((m) => setClientCTAs(() => m.HomeHeroCTAs));
-  }, []);
-  if (!ClientCTAs) {
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-        <Link to="/dashboard">
-          <Button size="lg" className="min-w-[180px] btn-fintech-primary">
-            <LayoutDashboard className="size-5 mr-2" />
-            Open Dashboard
-          </Button>
-        </Link>
-      </div>
-    );
-  }
-  return <ClientCTAs />;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+      <Link to="/dashboard">
+        <Button
+          size="lg"
+          variant="outline"
+          className="min-w-[180px] border-[var(--accent-teal)] text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10"
+        >
+          <Wallet className="size-5 mr-2" />
+          Connect Wallet
+        </Button>
+      </Link>
+      <Link to="/dashboard">
+        <Button size="lg" className="min-w-[180px] btn-fintech-primary">
+          <Zap className="size-5 mr-2" />
+          Sign in with Starkzap
+        </Button>
+      </Link>
+      <Link to="/dashboard">
+        <Button size="lg" variant="secondary" className="min-w-[180px]">
+          <LayoutDashboard className="size-5 mr-2" />
+          Open Dashboard
+        </Button>
+      </Link>
+    </div>
+  );
 }
 
 export default function LandingPage() {
