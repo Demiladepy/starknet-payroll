@@ -1,7 +1,5 @@
 import { Link, useNavigate } from "react-router";
 import { Button } from "~/components/ui/button";
-import { useConnect, useAccount } from "@starknet-react/core";
-import { useStarkzap } from "~/contexts/StarkzapContext";
 import {
   LayoutDashboard,
   Zap,
@@ -23,39 +21,13 @@ export function meta() {
   ];
 }
 
-/** Client-only CTAs that need wallet hooks */
-function HomeHeroCTAs() {
-  const navigate = useNavigate();
-  const { address, status } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { wallet: starkzapWallet, connecting: starkzapConnecting, connectStarkzap } = useStarkzap();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  const connected = status === "connected" && !!address;
-  const starkzapConnected = !!starkzapWallet?.address;
-
-  async function handleStarkzap() {
-    try {
-      await connectStarkzap();
-      navigate("/dashboard");
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  if (!mounted) {
-    return (
-      <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-        <Button size="lg" className="min-w-[180px]" disabled>
-          Loading…
-        </Button>
-      </div>
-    );
-  }
-
-  if (connected || starkzapConnected) {
+/** Lazy-loaded so wallet/Starkzap hooks only run in browser (providers are skipped during SSR). */
+function HomeHeroCTAsSafe() {
+  const [ClientCTAs, setClientCTAs] = useState<React.ComponentType | null>(null);
+  useEffect(() => {
+    import("./HomeHeroCTAs.client").then((m) => setClientCTAs(() => m.HomeHeroCTAs));
+  }, []);
+  if (!ClientCTAs) {
     return (
       <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
         <Link to="/dashboard">
@@ -67,38 +39,7 @@ function HomeHeroCTAs() {
       </div>
     );
   }
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-      {connectors.map((connector) => (
-        <Button
-          key={connector.id}
-          size="lg"
-          variant="outline"
-          className="min-w-[180px] border-[var(--accent-teal)] text-[var(--accent-teal)] hover:bg-[var(--accent-teal)]/10"
-          onClick={() => connect({ connector })}
-        >
-          <Wallet className="size-5 mr-2" />
-          Connect {connector.name}
-        </Button>
-      ))}
-      <Button
-        size="lg"
-        className="min-w-[180px] btn-fintech-primary"
-        onClick={handleStarkzap}
-        disabled={starkzapConnecting}
-      >
-        {starkzapConnecting ? (
-          "Connecting…"
-        ) : (
-          <>
-            <Zap className="size-5 mr-2" />
-            Sign in with Starkzap
-          </>
-        )}
-      </Button>
-    </div>
-  );
+  return <ClientCTAs />;
 }
 
 export default function LandingPage() {
@@ -138,7 +79,7 @@ export default function LandingPage() {
           <p className="text-sm text-[var(--text-muted)] max-w-xl mx-auto">
             Connect with Argent X or Braavos, or Sign in with Starkzap. Manage employees and send payments from one dashboard.
           </p>
-          <HomeHeroCTAs />
+          <HomeHeroCTAsSafe />
         </section>
 
         {/* Features — 3 cols */}
