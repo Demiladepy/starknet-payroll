@@ -9,125 +9,101 @@ export default function Home() {
   const { status } = useAccount();
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-[#F1F5F9] font-sans selection:bg-[#00E5CC] selection:text-black">
-      {/* Navbar Minimal */}
-      <nav className="border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-heading font-bold text-xl tracking-wide flex items-center gap-2">
-            <span className="text-xl">💼</span> StarkPayroll
-          </div>
-          <Link
-            to="/dashboard"
-            className="text-sm font-medium text-[#94A3B8] hover:text-[#F1F5F9] transition"
-          >
-            Dashboard
-          </Link>
-        </div>
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
+      {/* Minimal Topbar */}
+      <nav className="h-[52px] border-b border-[var(--border)] flex items-center justify-between px-6">
+        <div className="text-[14px] font-semibold tracking-tight">StarkPayroll</div>
+        <Link
+          to="/dashboard"
+          className="text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+        >
+          Dashboard
+        </Link>
       </nav>
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6 max-w-7xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-semibold uppercase tracking-widest mb-8">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
-          </span>
-          Privacy-First
-        </div>
-        <h1 className="font-heading text-5xl md:text-7xl font-bold leading-tight mb-6">
-          Private Payroll for the <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00E5CC] to-blue-500">
-            Onchain Era
-          </span>
-        </h1>
-        <p className="text-[#94A3B8] text-lg md:text-xl max-w-2xl mx-auto mb-12">
-          Companies leak salary data on public blockchains. We fix that. Pay your employees with standard or fully confidential transfers using ElGamal encryption.
-        </p>
+      {/* Hero Section */}
+      <main className="max-w-[1100px] mx-auto px-8 pt-32 pb-24">
+        <div className="flex flex-col md:flex-row gap-16 items-center">
+          {/* Left 60% */}
+          <div className="flex-1 md:max-w-[60%] space-y-8">
+            <h1 className="text-[48px] leading-[1.1] font-semibold tracking-tight">
+              Payroll without the public ledger
+            </h1>
+            <p className="text-[16px] text-[var(--text-secondary)] max-w-[400px] leading-relaxed">
+              Companies leak salary data on public blockchains. We fix that. Pay your employees with standard or fully confidential transfers using ElGamal encryption.
+            </p>
+            <div className="flex flex-col gap-3 w-fit">
+              <button
+                onClick={() => connect({ connector: connectors[0] })}
+                className="btn-secondary w-full"
+              >
+                {status === "connected" ? "Wallet Connected" : "Connect Wallet"}
+              </button>
+              <button
+                onClick={() => connectSz()}
+                disabled={szConnecting}
+                className="btn-primary w-full"
+              >
+                {szConnecting ? "Connecting..." : "Sign in with StarkZap"}
+              </button>
+            </div>
+          </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <button
-            onClick={() => connect({ connector: connectors[0] })}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] transition text-[#F1F5F9] font-medium"
-          >
-            {status === "connected" ? "Wallet Connected" : "Connect Wallet"}
-          </button>
-          <button
-            onClick={() => connectSz()}
-            disabled={szConnecting}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-teal-400 to-teal-500 text-[#0A0E1A] font-bold hover:from-teal-300 hover:to-teal-400 transition flex items-center justify-center gap-2"
-          >
-            <span>⚡</span>
-            {szConnecting ? "Connecting..." : "Sign in with StarkZap"}
-          </button>
+          {/* Right 40% - Abstract Grid Visualization */}
+          <div className="hidden md:flex flex-1 justify-center items-center">
+            <div className="grid grid-cols-6 gap-3 opacity-80">
+              {Array.from({ length: 36 }).map((_, i) => {
+                const isLocked = [7, 14, 16, 22, 28].includes(i);
+                return (
+                  <div
+                    key={i}
+                    className={`h-2 w-2 rounded-full ${
+                      isLocked ? "bg-[var(--accent)]" : "bg-[var(--text-muted)] opacity-30"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Feature Blocks - Staggered */}
+      <section className="border-t border-[var(--border)] bg-[var(--bg-surface)] py-32">
+        <div className="max-w-[1100px] mx-auto px-8 space-y-32">
+          {/* Feature 1 */}
+          <div className="md:w-[60%] space-y-4">
+            <div className="text-[11px] font-semibold tracking-[0.06em] text-[var(--accent)]">CONFIDENTIAL</div>
+            <h3 className="text-[18px] font-medium text-[var(--text-primary)]">Private Transfers</h3>
+            <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">
+              Powered by Tongo protocol. Salaries are encrypted. The amounts and history are hidden securely on Starknet, protecting both company treasury data and employee privacy.
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="md:w-[60%] space-y-4 md:ml-auto">
+            <div className="text-[11px] font-semibold tracking-[0.06em] text-[var(--accent)]">FRICTIONLESS</div>
+            <h3 className="text-[18px] font-medium text-[var(--text-primary)]">StarkZap Integration</h3>
+            <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">
+              Sign in without a browser extension. Create deterministically generated smart accounts instantly, smoothing the onboarding path for non-crypto natives.
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="md:w-[60%] space-y-4">
+            <div className="text-[11px] font-semibold tracking-[0.06em] text-[var(--accent)]">STREAMLINED</div>
+            <h3 className="text-[18px] font-medium text-[var(--text-primary)]">Minimal Dashboard</h3>
+            <p className="text-[14px] leading-relaxed text-[var(--text-secondary)]">
+              Manage employees, track history, and initiate payroll with engineered restraint. Designed for high density, speed, and precision execution.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-24 px-6 bg-[#131825]/50 border-y border-white/5">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
-              <div className="h-12 w-12 rounded-xl bg-teal-500/10 text-teal-400 flex items-center justify-center text-2xl mb-6">
-                🔒
-              </div>
-              <h3 className="font-heading text-xl font-bold mb-3">Private Transfers</h3>
-              <p className="text-[#94A3B8] leading-relaxed">
-                Powered by Tongo protocol. Salaries are encrypted. The amounts are hidden securely on starknet.
-              </p>
-            </div>
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
-              <div className="h-12 w-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl mb-6">
-                ⚡
-              </div>
-              <h3 className="font-heading text-xl font-bold mb-3">StarkZap Integration</h3>
-              <p className="text-[#94A3B8] leading-relaxed">
-                Sign in without an extension. Create deterministically generated smart accounts instantly.
-              </p>
-            </div>
-            <div className="p-8 rounded-2xl bg-white/[0.02] border border-white/5">
-              <div className="h-12 w-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-2xl mb-6">
-                📊
-              </div>
-              <h3 className="font-heading text-xl font-bold mb-3">Fintech Dashboard</h3>
-              <p className="text-[#94A3B8] leading-relaxed">
-                Manage employees, track history, and initiate payroll with ease.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="py-24 px-6 max-w-5xl mx-auto text-center">
-        <h2 className="font-heading text-3xl font-bold mb-16">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8 relative">
-          <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="h-24 w-24 rounded-full bg-[#131825] border border-white/10 flex items-center justify-center text-2xl mb-6 shadow-xl">
-              1
-            </div>
-            <h4 className="font-bold text-lg mb-2">Connect</h4>
-            <p className="text-[#94A3B8] text-sm">Use StarkZap or an injected starknet wallet.</p>
-          </div>
-          
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="h-24 w-24 rounded-full bg-[#131825] border border-white/10 flex items-center justify-center text-2xl mb-6 shadow-xl">
-              2
-            </div>
-            <h4 className="font-bold text-lg mb-2">Add Employees</h4>
-            <p className="text-[#94A3B8] text-sm">Register staff with their Tongo privacy keys.</p>
-          </div>
-          
-          <div className="relative z-10 flex flex-col items-center">
-            <div className="h-24 w-24 rounded-full bg-[#131825] border border-[#00E5CC]/30 flex items-center justify-center text-2xl mb-6 shadow-[0_0_30px_rgba(0,229,204,0.1)]">
-              3
-            </div>
-            <h4 className="font-bold text-lg mb-2 text-[#00E5CC]">Pay Privately</h4>
-            <p className="text-[#94A3B8] text-sm">Construct confidential transactions directly.</p>
-          </div>
-        </div>
-      </section>
+      {/* Footer */}
+      <footer className="py-12 text-center text-[12px] text-[var(--text-muted)] border-t border-[var(--border)]">
+        Built on Starknet. Encrypted by Tongo. Connected by StarkZap.
+      </footer>
     </div>
   );
 }

@@ -8,66 +8,75 @@ export default function Settings() {
   const network = import.meta.env.VITE_STARKNET_NETWORK || "sepolia";
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <div className="card-fintech p-6 space-y-4">
-        <h3 className="font-heading text-xl font-bold border-b border-white/5 pb-4">Network Info</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs text-[#64748B] mb-1">Network</div>
-            <div className="font-medium text-white capitalize">{network}</div>
+    <div className="max-w-[700px] space-y-8">
+      
+      <div className="card-fintech p-8">
+        <h3 className="text-[14px] font-medium mb-6">Network Configuration</h3>
+        <div className="grid grid-cols-2 gap-8 border-t border-[var(--border)] pt-6">
+          <div className="space-y-1">
+            <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Network</div>
+            <div className="text-[13px] text-[var(--text-primary)] capitalize">{network}</div>
           </div>
-          <div>
-            <div className="text-xs text-[#64748B] mb-1">RPC Node</div>
-            <div className="font-medium text-white truncate" title={rpcUrl}>{rpcUrl}</div>
+          <div className="space-y-1">
+            <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">RPC Node</div>
+            <div className="font-mono text-[12px] text-[var(--text-secondary)] truncate" title={rpcUrl}>{rpcUrl}</div>
           </div>
         </div>
       </div>
 
-      <div className="card-fintech p-6 space-y-4">
-        <h3 className="font-heading text-xl font-bold border-b border-white/5 pb-4">Tongo Privacy Protocol</h3>
-        <div className="space-y-4">
+      <div className="card-fintech p-8">
+        <h3 className="text-[14px] font-medium mb-6">Tongo Privacy Protocol</h3>
+        <div className="space-y-6 border-t border-[var(--border)] pt-6">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-white">Status</div>
+            <div className="text-[13px] text-[var(--text-secondary)]">Integration Status</div>
             {TONGO_CONFIG.isConfigured ? (
-              <span className="text-teal-400 text-xs bg-teal-500/10 px-2 py-1 rounded border border-teal-500/20">Active</span>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--status-success)]" />
+                <span className="text-[12px] text-[var(--text-primary)]">Active</span>
+              </div>
             ) : (
-              <span className="text-amber-400 text-xs bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">Not Configured</span>
+               <div className="flex items-center gap-2">
+                 <div className="h-1.5 w-1.5 rounded-full bg-[var(--status-error)]" />
+                 <span className="text-[12px] text-[var(--text-muted)]">Not configured</span>
+               </div>
             )}
           </div>
-          <div>
-             <div className="text-xs text-[#64748B] mb-1">Contract Address</div>
-             <div className="font-mono text-sm break-all text-[#94A3B8]">{TONGO_CONFIG.contractAddress || "Not set in .env"}</div>
+          <div className="space-y-1">
+             <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Wrapper Address</div>
+             <div className="font-mono text-[12px] text-[var(--text-secondary)] break-all">{TONGO_CONFIG.wrapperAddress || "—"}</div>
           </div>
         </div>
       </div>
 
-      <div className="card-fintech p-6 space-y-4">
-        <h3 className="font-heading text-xl font-bold border-b border-white/5 pb-4">Active Wallet Info</h3>
+      <div className="card-fintech p-8">
+        <h3 className="text-[14px] font-medium mb-6">Connected Environment</h3>
         {address ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-[#64748B] mb-1">Provider</div>
-                <div className="font-medium text-white">{walletName} {type === 'starkzap' && '⚡'}</div>
+          <div className="space-y-6 border-t border-[var(--border)] pt-6">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-1">
+                <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Provider</div>
+                <div className="text-[13px] text-[var(--text-primary)]">{walletName} {type === 'starkzap' && <span className="text-[var(--text-muted)]">(SDK)</span>}</div>
               </div>
-              <div>
-                <div className="text-xs text-[#64748B] mb-1">Executable</div>
-                <div className="font-medium text-white">{type === 'starkzap' ? 'No (Demo Signer)' : 'Yes'}</div>
+              <div className="space-y-1">
+                <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Execution Support</div>
+                <div className="text-[13px] text-[var(--text-secondary)]">{type === 'starkzap' ? 'Read-only demo signer' : 'Full write access'}</div>
               </div>
             </div>
-            <div>
-              <div className="text-xs text-[#64748B] mb-1">Address</div>
-              <div className="font-mono text-sm break-all text-[#94A3B8]">{address}</div>
+            <div className="space-y-1">
+              <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Public Address</div>
+              <div className="font-mono text-[12px] text-[var(--text-secondary)] break-all">{address}</div>
             </div>
           </div>
         ) : (
-          <div className="text-[#94A3B8] py-4">No wallet connected.</div>
+          <div className="border-t border-[var(--border)] pt-6 text-[13px] text-[var(--text-muted)]">
+             No active session detected.
+          </div>
         )}
       </div>
       
-      <div className="pt-4">
-         <button className="text-red-400 hover:text-red-300 text-sm font-medium transition" onClick={() => localStorage.clear()}>
-           Clear Local Data (Hard Reset)
+      <div className="pt-2">
+         <button className="btn-ghost text-[var(--status-error)] hover:text-red-400" onClick={() => localStorage.clear()}>
+           Clear Local Cache
          </button>
       </div>
     </div>

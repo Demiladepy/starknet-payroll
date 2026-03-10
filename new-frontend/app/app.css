@@ -1,38 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #0A0E1A;
-  --bg-secondary: #131825;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --border-card: rgba(255, 255, 255, 0.08);
-  --accent-teal: #00E5CC;
-  --accent-amber: #F59E0B;
-  --accent-red: #EF4444;
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
+  --bg-base: #09090b;
+  --bg-surface: #0f0f12;
+  --bg-elevated: #17171c;
+  --bg-hover: #1f1f26;
+
+  --accent: #3ecf8e;
+  --accent-muted: rgba(62, 207, 142, 0.12);
+  --accent-border: rgba(62, 207, 142, 0.2);
+
+  --status-success: #3ecf8e;
+  --status-pending: #e5a431;
+  --status-error: #e5484d;
+  --status-info: #6e9fff;
+
+  --text-primary: #ededef;
+  --text-secondary: #8b8b8e;
+  --text-muted: #5c5c5f;
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-focus: rgba(255, 255, 255, 0.12);
 }
 
 @theme {
-  --font-sans: "General Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 
-html {
-  font-feature-settings: "rlig" 1, "calt" 1;
-}
-
-html,
-body {
+html, body {
   @apply antialiased min-h-full;
-  font-size: 14px;
-  line-height: 1.5;
-  background-color: var(--bg-primary);
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
   color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00E5CC] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0E1A];
+  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-base)];
 }
 
 @keyframes shimmer {
@@ -44,34 +50,107 @@ body {
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
+/* Cards */
 .card-fintech {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 0.75rem;
-  backdrop-filter: blur(8px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
-.btn-fintech-primary {
-  background: var(--accent-teal);
+/* Buttons */
+.btn-primary {
+  background: var(--accent);
   color: #000;
   font-weight: 600;
-  border-radius: 0.5rem;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  letter-spacing: 0.01em;
+  transition: background 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.btn-fintech-primary:hover {
-  background: #00d4bc;
+.btn-primary:hover:not(:disabled) {
+  background: #36b57c;
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: 6px;
+  padding: 8px 16px;
+  letter-spacing: 0.01em;
+  transition: background 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bg-elevated);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 8px 12px;
+  font-size: 12px;
+  transition: color 100ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+/* Typography utilities */
 .font-heading {
-  font-family: "Satoshi", var(--font-sans);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: var(--text-primary);
+}
+.stat-number {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-.page-title {
-  @apply text-2xl font-bold tracking-tight text-[#F1F5F9];
-  font-family: "Satoshi", var(--font-sans);
+/* Tables */
+.table-header th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+  padding: 12px 16px;
 }
-.section-header {
-  @apply text-base font-semibold text-[#F1F5F9];
+.table-row {
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  transition: background 100ms ease;
 }
-.caption {
-  @apply text-xs text-[#64748B];
+.table-row:hover {
+  background: var(--bg-hover);
+}
+.table-row td {
+  padding: 12px 16px;
 }

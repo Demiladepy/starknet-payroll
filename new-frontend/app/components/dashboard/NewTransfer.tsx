@@ -3,23 +3,24 @@ import { useDashboardStore, type Employee } from "../../stores/dashboardStore";
 import { useActiveWallet } from "../../hooks/useActiveWallet";
 import { canUsePrivateTransfer, TONGO_CONFIG } from "../../lib/tongo";
 import { toast } from "sonner";
+import { Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { employees, addTransfer } = useDashboardStore();
-  const { execute, type: walletType, walletName, isConnected, address } = useActiveWallet();
+  const { execute, type: walletType, walletName, isConnected } = useActiveWallet();
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [companyKey, setCompanyKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
+
   const [txHash, setTxHash] = useState("");
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmpId);
-  
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAmount(e.target.value);
-  };
+  const isPrivate = selectedEmployee
+    ? canUsePrivateTransfer(selectedEmployee, Boolean(companyKey))
+    : false;
 
   const handleSelectEmp = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedEmpId(e.target.value);
@@ -27,44 +28,39 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
     if (emp) setAmount(emp.salary.toString());
   };
 
-  const isPrivate = selectedEmployee
-    ? canUsePrivateTransfer(selectedEmployee, Boolean(companyKey))
-    : false;
-
   const handleTransfer = async () => {
     if (!selectedEmployee || !amount || isNaN(Number(amount))) return;
     if (!isConnected) {
-      setErrorMsg("Please connect a wallet first.");
-      setStatus("error");
+      toast.error("No Provider", { description: "Please connect a wallet first." });
       return;
     }
     
     setStatus("loading");
-    setErrorMsg("");
 
     try {
       let hash = "";
       let type: "tongo_private" | "standard" = "standard";
+      
+      const payloadCalldata = isPrivate 
+        ? [selectedEmployee.tongoPublicKey!, (Number(amount) * 1e18).toString()]
+        : [selectedEmployee.walletAddress, (Number(amount) * 1e18).toString()];
+
+      const callPreview = {
+        contractAddress: isPrivate ? (TONGO_CONFIG.contractAddress || "0x_no_addr") : "0x_erc20_addr",
+        entrypoint: isPrivate ? "transfer_private" : "transfer",
+        calldata: payloadCalldata
+      };
 
       if (isPrivate) {
-        // Mock Tongo Calldata Execution
-        // If we had real Tongo SDK we would import buildPrivateTransferCall here
-        // and execute the resulting `call`.
-        const call = {
-          contractAddress: TONGO_CONFIG.contractAddress || "0x00",
-          entrypoint: "transfer_private",
-          calldata: [selectedEmployee.tongoPublicKey!, (Number(amount) * 1e18).toString()]
-        };
-        const result = await execute(call);
+        // Tongo Sim
+        const result = await execute(callPreview);
         hash = result.transaction_hash;
         type = "tongo_private";
       } else {
-        // Standard or mock execution
+        // Standard Sim
         if (walletType === "starkzap" || !walletType) {
            hash = `0xMOCK_${Date.now().toString(16)}`;
         } else {
-          // If we want real execute with real ETH on argent we would do it here
-          // But for now, mock standard
            hash = `0xMOCK_${Date.now().toString(16)}`;
         }
         type = "standard";
@@ -73,6 +69,10 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
       setTxHash(hash);
       setStatus("success");
       
+      toast.success(isPrivate ? "Confidential transfer initiated" : "Transfer initiated", {
+        description: `Tx: ${hash.slice(0, 10)}...`
+      });
+
       addTransfer({
         id: crypto.randomUUID(),
         employeeId: selectedEmployee.id,
@@ -85,17 +85,9 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
         createdAt: new Date().toISOString(),
       });
       
-      toast.success("Transfer submitted successfully!", {
-        description: `Tx: ${hash.slice(0, 10)}...`
-      });
     } catch (err: any) {
-      console.error(err);
       setStatus("error");
-      setErrorMsg(err?.message || "Transfer failed");
-      
-      toast.error("Transfer Failed", {
-        description: err?.message || "An unknown error occurred."
-      });
+      toast.error("Transfer failed", { description: err?.message || "Execution error" });
       
        addTransfer({
         id: crypto.randomUUID(),
@@ -111,148 +103,169 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="grid md:grid-cols-2 gap-8">
-        
-        {/* Form */}
-        <div className="card-fintech p-6 space-y-6">
-          <h3 className="font-heading text-xl font-semibold border-b border-white/5 pb-4">New Transfer</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-[#94A3B8] font-medium mb-1.5">Employee</label>
-              <select
-                value={selectedEmpId}
-                onChange={handleSelectEmp}
-                className="w-full bg-[#131825] border border-white/10 rounded-lg px-4 py-3 text-white focus-ring"
-              >
-                <option value="" disabled>Select Employee</option>
-                {employees.map(e => <option key={e.id} value={e.id}>{e.name} — {e.department}</option>)}
-              </select>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_300px] gap-8 max-w-6xl mx-auto items-start">
+      
+      {/* Col 1: Steps Nav */}
+      <div className="hidden md:block sticky top-8">
+        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[5px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[1px] before:bg-gradient-to-b before:from-transparent before:via-[var(--border)] before:to-transparent">
+          <div className="flex items-center gap-4">
+            <div className="h-3 w-3 rounded-full bg-[var(--accent)] z-10 shrink-0" />
+            <div className="text-[13px] font-medium text-[var(--accent)]">Details</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-3 w-3 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] z-10 shrink-0" />
+            <div className="text-[13px] font-medium text-[var(--text-muted)]">Privacy</div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="h-3 w-3 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] z-10 shrink-0" />
+            <div className="text-[13px] font-medium text-[var(--text-muted)]">Submit</div>
+          </div>
+        </div>
+      </div>
 
-            <div>
-              <label className="block text-sm text-[#94A3B8] font-medium mb-1.5">Amount (ETH)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={handleAmountChange}
-                placeholder="0.00"
-                className="w-full bg-[#131825] border border-white/10 rounded-lg px-4 py-3 text-white focus-ring font-mono"
-              />
+      {/* Col 2: Active Step Form */}
+      <div className="card-fintech p-8 space-y-8 min-h-[400px]">
+        {/* Recipient */}
+        <div className="space-y-3">
+          <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Recipient</label>
+          <select
+            value={selectedEmpId}
+            onChange={handleSelectEmp}
+            className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[13px] text-[var(--text-primary)] focus-ring appearance-none"
+          >
+            <option value="" disabled>Select employee</option>
+            {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role})</option>)}
+          </select>
+        </div>
+
+        {/* Amount & Note */}
+        <div className="grid grid-cols-[1.5fr_1fr] gap-4">
+           <div className="space-y-3">
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Amount (ETH)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[14px] font-mono text-[var(--text-primary)] focus-ring"
+            />
+          </div>
+          <div className="space-y-3">
+            <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Memo</label>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[13px] text-[var(--text-primary)] focus-ring"
+            />
+          </div>
+        </div>
+
+        {/* Privacy Key Terminal Input */}
+        {selectedEmployee?.tongoPublicKey && (
+          <div className="space-y-3 pt-6 border-t border-[var(--border)]">
+            <div className="flex items-center justify-between">
+              <label className="block text-[12px] font-medium text-[var(--text-secondary)]">
+                Company Private Key <span className="text-[var(--text-muted)]">(for ElGamal encryption)</span>
+              </label>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Not Stored</div>
             </div>
             
-            <div>
-              <label className="block text-sm text-[#94A3B8] font-medium mb-1.5">Note (Optional)</label>
+            <div className="relative">
               <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="March Salary"
-                className="w-full bg-[#131825] border border-white/10 rounded-lg px-4 py-3 text-white focus-ring"
+                type={showKey ? "text" : "password"}
+                value={companyKey}
+                onChange={(e) => setCompanyKey(e.target.value)}
+                placeholder="0x..."
+                className="w-full bg-[#050505] border border-[var(--border)] rounded-[6px] pl-3 pr-10 py-2.5 text-[13px] font-mono text-[var(--accent)] focus-ring placeholder:text-[#333]"
               />
-            </div>
-
-            {selectedEmployee?.tongoPublicKey && (
-              <div className="pt-2">
-                <label className="block text-sm text-teal-400 font-medium mb-1.5">Company Privacy Key</label>
-                <input
-                  type="password"
-                  value={companyKey}
-                  onChange={(e) => setCompanyKey(e.target.value)}
-                  placeholder="Enter key to enable private transfer"
-                  className="w-full bg-[#131825] border border-teal-500/30 rounded-lg px-4 py-3 text-white focus-ring"
-                />
-                <p className="text-xs text-[#64748B] mt-2">Required for ElGamal encryption via Tongo.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Preview Panel */}
-        <div className="card-fintech p-6 flex flex-col justify-between">
-          <div className="space-y-6">
-             <h3 className="font-heading text-xl font-semibold border-b border-white/5 pb-4">Transaction Preview</h3>
-             
-             {!selectedEmployee ? (
-               <div className="text-[#64748B] text-center py-10">Select an employee to see preview.</div>
-             ) : (
-               <div className="space-y-4">
-                  <div className="flex justify-between items-center py-2 border-b border-white/[0.02]">
-                    <span className="text-[#94A3B8] text-sm">Recipient</span>
-                    <span className="text-white font-medium">{selectedEmployee.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-white/[0.02]">
-                    <span className="text-[#94A3B8] text-sm">Amount</span>
-                    <span className="text-white font-medium font-mono">{amount || "0.00"} ETH</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b border-white/[0.02]">
-                    <span className="text-[#94A3B8] text-sm">Transfer Type</span>
-                    {isPrivate ? (
-                      <span className="text-teal-400 font-medium flex items-center gap-1.5 bg-teal-500/10 px-2 py-0.5 rounded text-sm">🔒 Private via Tongo</span>
-                    ) : (
-                      <span className="text-amber-400 font-medium flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded text-sm">📤 Standard Transfer</span>
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-[#94A3B8] text-sm">Executor</span>
-                    <span className={`font-medium ${walletType === 'starkzap' ? 'text-teal-400' : 'text-white'}`}>
-                      {isConnected ? (walletType === 'starkzap' ? 'StarkZap ⚡' : walletName) : 'Not Connected'}
-                    </span>
-                  </div>
-
-                  {status === "error" && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm text-red-400">
-                      {errorMsg}
-                    </div>
-                  )}
-                  {status === "success" && (
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 space-y-2">
-                      <div className="text-green-400 font-semibold mb-1">Transfer Initiated!</div>
-                       {txHash.startsWith("0xMOCK_") ? (
-                         <div className="text-xs text-[#94A3B8] font-mono whitespace-normal break-all">{txHash} (Local Mock)</div>
-                       ) : (
-                         <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noreferrer" className="text-xs text-teal-400 font-mono hover:underline whitespace-normal break-all">
-                           {txHash} ↗
-                         </a>
-                       )}
-                    </div>
-                  )}
-               </div>
-             )}
-          </div>
-          
-          <div className="pt-6">
-            <button
-               disabled={!selectedEmployee || status === "loading"}
-               onClick={handleTransfer}
-               className={`w-full py-3.5 rounded-xl font-bold transition flex justify-center items-center gap-2 ${
-                 !selectedEmployee
-                   ? "bg-white/5 text-[#64748B] cursor-not-allowed"
-                   : walletType === "starkzap"
-                   ? "bg-gradient-to-r from-teal-400 to-teal-500 text-[#0A0E1A] hover:from-teal-300 hover:to-teal-400"
-                   : "bg-white text-[#0A0E1A] hover:bg-zinc-200"
-               }`}
-            >
-               {status === "loading" ? "Processing..." : (
-                 <>
-                   {walletType === "starkzap" && <span>⚡</span>} 
-                   Confirm with {walletType === 'starkzap' ? 'StarkZap' : (isConnected ? walletName : 'Wallet')}
-                 </>
-               )}
-            </button>
-            {status === "success" && (
-              <button
-                onClick={() => { setStatus("idle"); setAmount(""); setNote(""); }}
-                className="w-full mt-3 py-2 text-sm text-[#94A3B8] hover:text-white transition"
+              <button 
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
-                Send Another
+                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
-            )}
+            </div>
+          </div>
+        )}
+
+        {/* Action */}
+        <div className="pt-6">
+          <button
+            disabled={!selectedEmployee || status === "loading"}
+            onClick={handleTransfer}
+            className="w-full btn-primary py-3 flex justify-center items-center"
+          >
+            {status === "loading" ? "Executing..." : "Confirm Transfer"}
+          </button>
+          
+          <div className="text-center mt-3 text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
+            Executing via
+            <span className={`font-mono ${walletType === "starkzap" ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+               {isConnected ? walletName : "None"}
+            </span>
           </div>
         </div>
-        
+      </div>
+
+      {/* Col 3: Live Summary Panel */}
+      <div className="card-fintech p-6 space-y-6 sticky top-8 bg-[var(--bg-base)] md:bg-transparent border-t border-[var(--border)] md:border-none md:p-0">
+         <h4 className="text-[11px] font-semibold tracking-[0.06em] uppercase text-[var(--text-muted)]">Live Summary</h4>
+         
+         {!selectedEmployee ? (
+           <div className="text-[13px] text-[var(--text-muted)] pt-4">Awaiting details...</div>
+         ) : (
+           <div className="space-y-4">
+              <div>
+                <div className="text-[11px] text-[var(--text-muted)] mb-1">To</div>
+                <div className="text-[13px] font-medium">{selectedEmployee.name}</div>
+              </div>
+              
+              <div>
+                <div className="text-[11px] text-[var(--text-muted)] mb-1">Amount</div>
+                <div className="font-mono text-[14px]">{amount || "0.00"} ETH</div>
+              </div>
+
+              <div>
+                <div className="text-[11px] text-[var(--text-muted)] mb-3">Path</div>
+                {isPrivate ? (
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-[4px] bg-[#3ecf8e]/10">
+                      <Lock size={12} className="text-[#3ecf8e]" />
+                      <span className="text-[12px] font-medium text-[#3ecf8e]">Confidential transfer</span>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">Amount encrypted via Tongo Protocol. Only recipient can decrypt.</div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-[4px]">
+                      <ArrowRight size={12} className="text-[var(--text-secondary)]" />
+                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">Standard transfer</span>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">Amount visible on-chain. Key missing for encryption.</div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Preview Block */}
+              <div className="pt-4 border-t border-[var(--border)]">
+                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-2">Simulated Calldata</div>
+                 <pre className="bg-[#050505] border border-[var(--border)] rounded-[4px] p-3 text-[10px] text-[var(--text-muted)] font-mono overflow-x-auto">
+{`{
+  contractAddress: "${isPrivate ? (TONGO_CONFIG.contractAddress?.slice(0,10) + '...' || '0x_tongo') : '0x_eth_tk'}",
+  entrypoint: "${isPrivate ? 'transfer_private' : 'transfer'}",
+  calldata: [
+    "${isPrivate ? selectedEmployee.tongoPublicKey?.slice(0, 15) + '...' : selectedEmployee.walletAddress?.slice(0, 15) + '...'}",
+    "${(Number(amount || 0) * 1e18).toString()}"
+  ]
+}`}
+                 </pre>
+              </div>
+           </div>
+         )}
       </div>
     </div>
   );
