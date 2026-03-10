@@ -12,30 +12,23 @@ import type { Route } from "./+types/root";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { AppProviders } from "./providers/AppProviders";
-import { Toaster } from "sonner";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   { rel: "preconnect", href: "https://cdn.jsdelivr.net", crossOrigin: "anonymous" },
   {
     rel: "preload",
-    as: "style",
-    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Variable.css",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Variable.css",
+    as: "font",
+    type: "font/woff2",
+    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Variable.woff2",
+    crossOrigin: "anonymous",
   },
   {
     rel: "preload",
-    as: "style",
-    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/GeistMono-Variable.css",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/GeistMono-Variable.css",
+    as: "font",
+    type: "font/woff2",
+    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-mono/GeistMono-Variable.woff2",
+    crossOrigin: "anonymous",
   },
 ];
 
@@ -71,25 +64,6 @@ export default function App() {
         <ThemeProvider>
           <ToastProvider>
             <Outlet />
-            <Toaster 
-              position="bottom-center" 
-              duration={4000}
-              toastOptions={{
-                className: "bg-[#17171c] text-[#ededef] text-[13px] border-y-0 border-r-0 rounded shadow-xl",
-                style: {
-                   borderLeft: '2px solid var(--accent)',
-                   background: '#17171c',
-                   color: '#ededef',
-                   padding: '12px 16px'
-                }
-              }}
-              icons={{
-                success: <span className="hidden"></span>,
-                error: <span className="hidden"></span>,
-                warning: <span className="hidden"></span>,
-                info: <span className="hidden"></span>,
-              }}
-            />
           </ToastProvider>
         </ThemeProvider>
       </ClientNuqsAdapter>

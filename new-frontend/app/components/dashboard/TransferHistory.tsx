@@ -22,7 +22,7 @@ export default function TransferHistory() {
           className="bg-transparent border border-[var(--border)] rounded-[6px] px-3 py-1.5 text-[13px] text-[var(--text-primary)] w-48 focus-ring"
         >
           <option value="all">All Transfers</option>
-          <option value="private">Private (Tongo)</option>
+          <option value="private">Confidential</option>
           <option value="standard">Standard</option>
         </select>
         <button className="btn-secondary">

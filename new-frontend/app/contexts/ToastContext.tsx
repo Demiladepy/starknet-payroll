@@ -7,10 +7,11 @@ import {
   type ReactNode,
 } from "react";
 
-type ToastMessage = { id: number; text: string };
+type ToastKind = "success" | "error" | "warning" | "info";
+type ToastMessage = { id: number; text: string; kind: ToastKind };
 
 type ToastContextValue = {
-  toast: (text: string) => void;
+  toast: (text: string, kind?: ToastKind) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -18,33 +19,40 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 const AUTO_DISMISS_MS = 4000;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [messages, setMessages] = useState<ToastMessage[]>([]);
+  const [message, setMessage] = useState<ToastMessage | null>(null);
   const idRef = useRef(0);
 
-  const toast = useCallback((text: string) => {
+  const toast = useCallback((text: string, kind: ToastKind = "info") => {
     const id = ++idRef.current;
-    setMessages((prev) => [...prev, { id, text }]);
+    setMessage({ id, text, kind });
     setTimeout(() => {
-      setMessages((prev) => prev.filter((m) => m.id !== id));
+      setMessage((m) => (m?.id === id ? null : m));
     }, AUTO_DISMISS_MS);
   }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div
-        className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm"
-        aria-live="polite"
-      >
-        {messages.map((m) => (
+      {message && (
+        <div className="fixed bottom-5 left-1/2 z-[100] -translate-x-1/2" aria-live="polite">
           <div
-            key={m.id}
-            className="rounded-[var(--radius-button)] border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-slate-100 shadow-lg"
+            className="max-w-[640px] rounded-[6px] border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-[13px] text-[var(--text-primary)] shadow-xl"
+            style={{
+              borderLeft: `2px solid ${
+                message.kind === "success"
+                  ? "var(--status-success)"
+                  : message.kind === "warning"
+                    ? "var(--status-pending)"
+                    : message.kind === "error"
+                      ? "var(--status-error)"
+                      : "var(--status-info)"
+              }`,
+            }}
           >
-            {m.text}
+            {message.text}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </ToastContext.Provider>
   );
 }

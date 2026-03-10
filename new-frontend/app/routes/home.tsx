@@ -1,13 +1,7 @@
 import React from "react";
 import { Link } from "react-router";
-import { useStarkzap } from "../contexts/StarkzapContext";
-import { useAccount, useConnect } from "@starknet-react/core";
 
 export default function Home() {
-  const { connect: connectSz, isConnecting: szConnecting } = useStarkzap();
-  const { connect, connectors } = useConnect();
-  const { status } = useAccount();
-
   return (
     <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
       {/* Minimal Topbar */}
@@ -33,19 +27,15 @@ export default function Home() {
               Companies leak salary data on public blockchains. We fix that. Pay your employees with standard or fully confidential transfers using ElGamal encryption.
             </p>
             <div className="flex flex-col gap-3 w-fit">
-              <button
-                onClick={() => connect({ connector: connectors[0] })}
-                className="btn-secondary w-full"
-              >
-                {status === "connected" ? "Wallet Connected" : "Connect Wallet"}
-              </button>
-              <button
-                onClick={() => connectSz()}
-                disabled={szConnecting}
-                className="btn-primary w-full"
-              >
-                {szConnecting ? "Connecting..." : "Sign in with StarkZap"}
-              </button>
+              <Link to="/dashboard" className="w-full">
+                <span className="btn-primary w-full">Open Dashboard</span>
+              </Link>
+              <Link to="/dashboard" className="w-full">
+                <span className="btn-secondary w-full">Connect Wallet</span>
+              </Link>
+              <Link to="/dashboard" className="w-full">
+                <span className="btn-secondary w-full">Starkzap</span>
+              </Link>
             </div>
           </div>
 

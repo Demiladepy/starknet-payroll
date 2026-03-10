@@ -1,106 +1,187 @@
-import React, { useState } from "react";
-import { useDashboardStore, type Employee } from "../../stores/dashboardStore";
+import React, { useMemo, useState } from "react";
+import { useDashboardStore } from "../../stores/dashboardStore";
 import { useActiveWallet } from "../../hooks/useActiveWallet";
-import { canUsePrivateTransfer, TONGO_CONFIG } from "../../lib/tongo";
-import { toast } from "sonner";
-import { Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import {
+  buildPrivateTransferCalls,
+  canUsePrivateTransfer,
+  TONGO_CONFIG,
+  getTransferPath,
+} from "../../lib/tongo";
+import { useToast } from "../../contexts/ToastContext";
+import { isMockTxHash } from "../../lib/constants";
+import { Lock, ArrowUpRight, Eye, EyeOff } from "lucide-react";
+
+type Step = "select" | "details" | "review" | "submit";
+
+function mockHash(): string {
+  return `0xMOCK_${Date.now().toString(16)}_${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function CalldataPreview({ calldata }: { calldata: unknown[] | null }) {
+  if (!calldata?.length) return null;
+  return (
+    <details className="mt-4">
+      <summary className="text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none">
+        Transaction calldata
+      </summary>
+      <pre className="mt-2 p-3 bg-[var(--bg-base)] border border-[var(--border)] rounded text-[11px] font-mono text-[var(--text-muted)] overflow-x-auto max-h-[200px] overflow-y-auto">
+        {JSON.stringify(
+          calldata,
+          (_, value) => (typeof value === "bigint" ? value.toString() : value),
+          2
+        )}
+      </pre>
+    </details>
+  );
+}
 
 export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { employees, addTransfer } = useDashboardStore();
-  const { execute, type: walletType, walletName, isConnected } = useActiveWallet();
+  const { address: walletAddress, type: walletType, execute, walletName, isConnected } = useActiveWallet();
+  const { toast } = useToast();
+
+  const [step, setStep] = useState<Step>("select");
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [companyKey, setCompanyKey] = useState("");
   const [showKey, setShowKey] = useState(false);
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-  const [txHash, setTxHash] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [builtCalldata, setBuiltCalldata] = useState<unknown[] | null>(null);
 
-  const selectedEmployee = employees.find((e) => e.id === selectedEmpId);
-  const isPrivate = selectedEmployee
-    ? canUsePrivateTransfer(selectedEmployee, Boolean(companyKey))
-    : false;
+  const selectedEmployee = useMemo(
+    () => employees.find((e) => e.id === selectedEmpId),
+    [employees, selectedEmpId]
+  );
 
-  const handleSelectEmp = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedEmpId(e.target.value);
-    const emp = employees.find((x) => x.id === e.target.value);
-    if (emp) setAmount(emp.salary.toString());
-  };
+  const parsedAmount = Number(amount);
+  const amountValid = amount.trim() !== "" && Number.isFinite(parsedAmount) && parsedAmount > 0;
 
-  const handleTransfer = async () => {
-    if (!selectedEmployee || !amount || isNaN(Number(amount))) return;
-    if (!isConnected) {
-      toast.error("No Provider", { description: "Please connect a wallet first." });
-      return;
-    }
-    
-    setStatus("loading");
+  const canPrivate =
+    !!selectedEmployee &&
+    canUsePrivateTransfer(selectedEmployee, Boolean(companyKey.trim()));
+
+  const transferType: "tongo_private" | "standard" = canPrivate ? "tongo_private" : "standard";
+
+  const pathInfo = useMemo(
+    () => getTransferPath(selectedEmployee ?? null, Boolean(companyKey.trim()), isConnected),
+    [selectedEmployee, companyKey, isConnected]
+  );
+
+  function showTongoError(e: unknown): string {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("Cannot find module") || msg.includes("Module not found"))
+      return "Tongo SDK not installed. Run: npm install @fatsolutions/tongo-sdk";
+    if (msg.includes("Could not find a transfer function"))
+      return "Tongo SDK API mismatch. Check discovery steps in the Tongo prompt.";
+    if (msg.includes("insufficient") || msg.includes("balance") || msg.includes("dont have enough"))
+      return "Insufficient Tongo balance. Fund your Tongo account first.";
+    if (msg.includes("Invalid") && msg.includes("key"))
+      return "Invalid Tongo key format. Keys should be hex strings starting with 0x.";
+    if (msg.includes("nonce") || msg.includes("TRANSACTION_EXECUTION_ERROR"))
+      return "Transaction failed on-chain. Check wallet balance and try again.";
+    return msg || "Transfer failed.";
+  }
+
+  async function confirm() {
+    if (!selectedEmployee || !amountValid) return;
+
+    setSubmitting(true);
+    setTxHash(null);
+    setError(null);
+    setBuiltCalldata(null);
+
+    const amountWei = BigInt(Math.floor(parsedAmount * 1e18));
+    const noteVal = note.trim() || undefined;
 
     try {
-      let hash = "";
-      let type: "tongo_private" | "standard" = "standard";
-      
-      const payloadCalldata = isPrivate 
-        ? [selectedEmployee.tongoPublicKey!, (Number(amount) * 1e18).toString()]
-        : [selectedEmployee.walletAddress, (Number(amount) * 1e18).toString()];
-
-      const callPreview = {
-        contractAddress: isPrivate ? (TONGO_CONFIG.contractAddress || "0x_no_addr") : "0x_erc20_addr",
-        entrypoint: isPrivate ? "transfer_private" : "transfer",
-        calldata: payloadCalldata
-      };
-
-      if (isPrivate) {
-        // Tongo Sim
-        const result = await execute(callPreview);
-        hash = result.transaction_hash;
-        type = "tongo_private";
-      } else {
-        // Standard Sim
-        if (walletType === "starkzap" || !walletType) {
-           hash = `0xMOCK_${Date.now().toString(16)}`;
-        } else {
-           hash = `0xMOCK_${Date.now().toString(16)}`;
+      if (canPrivate && companyKey.trim() && selectedEmployee.tongoPublicKey && isConnected) {
+        if (!walletAddress) {
+          setError("Wallet address required for confidential transfer.");
+          toast("Wallet address required for confidential transfer.", "error");
+          setSubmitting(false);
+          return;
         }
-        type = "standard";
+        const calls = await buildPrivateTransferCalls({
+          recipientPublicKey: selectedEmployee.tongoPublicKey,
+          amount: amountWei,
+          senderPrivateKey: companyKey.trim(),
+          senderAddress: walletAddress,
+        });
+        const calldataForPreview = JSON.parse(
+          JSON.stringify(calls, (_, v) => (typeof v === "bigint" ? v.toString() : v))
+        ) as unknown[];
+        setBuiltCalldata(calldataForPreview);
+
+        try {
+          const result = await execute(calls);
+          const hash = result.transaction_hash ?? mockHash();
+          setCompanyKey("");
+          setTxHash(hash);
+          addTransfer({
+            id: crypto.randomUUID(),
+            employeeId: selectedEmployee.id,
+            employeeName: selectedEmployee.name,
+            amount: parsedAmount,
+            note: noteVal,
+            status: isMockTxHash(hash) ? "completed" : "pending",
+            type: "tongo_private",
+            txHash: hash,
+            createdAt: new Date().toISOString(),
+          });
+          toast(
+            isMockTxHash(hash)
+              ? `Transfer recorded — ${hash.slice(0, 10)}…${hash.slice(-8)}`
+              : `Transfer submitted — ${hash.slice(0, 10)}…${hash.slice(-8)}`,
+            "success"
+          );
+        } catch (execErr) {
+          setCompanyKey("");
+          const errMsg = showTongoError(execErr);
+          setError(errMsg);
+          toast(errMsg, "error");
+          addTransfer({
+            id: crypto.randomUUID(),
+            employeeId: selectedEmployee.id,
+            employeeName: selectedEmployee.name,
+            amount: parsedAmount,
+            note: noteVal,
+            status: "failed",
+            type: "tongo_private",
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        const hash = mockHash();
+        setTxHash(hash);
+        addTransfer({
+          id: crypto.randomUUID(),
+          employeeId: selectedEmployee.id,
+          employeeName: selectedEmployee.name,
+          amount: parsedAmount,
+          note: noteVal,
+          status: "completed",
+          type: "standard",
+          txHash: hash,
+          createdAt: new Date().toISOString(),
+        });
+        toast(`Transfer recorded — ${hash.slice(0, 10)}…${hash.slice(-8)}`, "success");
       }
-
-      setTxHash(hash);
-      setStatus("success");
-      
-      toast.success(isPrivate ? "Confidential transfer initiated" : "Transfer initiated", {
-        description: `Tx: ${hash.slice(0, 10)}...`
-      });
-
-      addTransfer({
-        id: crypto.randomUUID(),
-        employeeId: selectedEmployee.id,
-        employeeName: selectedEmployee.name,
-        amount: Number(amount),
-        note,
-        status: hash.startsWith("0xMOCK_") ? "completed" : "pending",
-        type,
-        txHash: hash,
-        createdAt: new Date().toISOString(),
-      });
-      
-    } catch (err: any) {
-      setStatus("error");
-      toast.error("Transfer failed", { description: err?.message || "Execution error" });
-      
-       addTransfer({
-        id: crypto.randomUUID(),
-        employeeId: selectedEmployee.id,
-        employeeName: selectedEmployee.name,
-        amount: Number(amount),
-        note,
-        status: "failed",
-        type: isPrivate ? "tongo_private" : "standard",
-        createdAt: new Date().toISOString(),
-      });
+    } catch (buildErr) {
+      const errMsg = showTongoError(buildErr);
+      setError(errMsg);
+      toast(errMsg, "error");
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
+
+  const handleSelectEmp = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setSelectedEmpId(e.target.value);
+  const handleTransfer = () => void confirm();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_300px] gap-8 max-w-6xl mx-auto items-start">
@@ -163,15 +244,18 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
           </div>
         </div>
 
-        {/* Privacy Key Terminal Input */}
-        {selectedEmployee?.tongoPublicKey && (
+        {/* Company Tongo key — only when Tongo configured and employee has public key */}
+        {TONGO_CONFIG.isConfigured && selectedEmployee?.tongoPublicKey && (
           <div className="space-y-3 pt-6 border-t border-[var(--border)]">
             <div className="flex items-center justify-between">
               <label className="block text-[12px] font-medium text-[var(--text-secondary)]">
-                Company Private Key <span className="text-[var(--text-muted)]">(for ElGamal encryption)</span>
+                Company Tongo key
               </label>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Not Stored</div>
+              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Not stored</div>
             </div>
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Used to build the encrypted transfer proof. Not stored.
+            </p>
             
             <div className="relative">
               <input
@@ -195,11 +279,11 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
         {/* Action */}
         <div className="pt-6">
           <button
-            disabled={!selectedEmployee || status === "loading"}
+            disabled={!selectedEmployee || submitting}
             onClick={handleTransfer}
             className="w-full btn-primary py-3 flex justify-center items-center"
           >
-            {status === "loading" ? "Executing..." : "Confirm Transfer"}
+            {submitting ? "Executing..." : "Confirm Transfer"}
           </button>
           
           <div className="text-center mt-3 text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
@@ -230,40 +314,41 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
               </div>
 
               <div>
-                <div className="text-[11px] text-[var(--text-muted)] mb-3">Path</div>
-                {isPrivate ? (
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-[4px] bg-[#3ecf8e]/10">
-                      <Lock size={12} className="text-[#3ecf8e]" />
-                      <span className="text-[12px] font-medium text-[#3ecf8e]">Confidential transfer</span>
+                <div className="text-[11px] text-[var(--text-muted)] mb-2">Path</div>
+                {pathInfo.path === "tongo" ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-[6px] bg-[var(--accent)]/10 border border-[var(--accent)]/20">
+                      <Lock size={12} className="text-[var(--accent)] shrink-0" />
+                      <span className="text-[12px] font-medium text-[var(--accent)]">{pathInfo.label}</span>
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">Amount encrypted via Tongo Protocol. Only recipient can decrypt.</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">{pathInfo.sublabel}</div>
+                  </div>
+                ) : pathInfo.path === "standard" ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-[6px] bg-[var(--bg-elevated)] border border-[var(--border)]">
+                      <ArrowUpRight size={12} className="text-[var(--text-secondary)] shrink-0" />
+                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">{pathInfo.label}</span>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-muted)]">{pathInfo.sublabel}</div>
+                    {pathInfo.missingItems.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="text-[11px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none">
+                          What&apos;s needed for confidential?
+                        </summary>
+                        <ul className="mt-1 ml-3 text-[11px] text-[var(--text-muted)] list-disc space-y-0.5">
+                          {pathInfo.missingItems.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-[4px]">
-                      <ArrowRight size={12} className="text-[var(--text-secondary)]" />
-                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">Standard transfer</span>
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)] leading-relaxed">Amount visible on-chain. Key missing for encryption.</div>
-                  </div>
+                  <div className="text-[12px] text-[var(--text-muted)]">{pathInfo.label}</div>
                 )}
               </div>
-              
-              {/* Preview Block */}
-              <div className="pt-4 border-t border-[var(--border)]">
-                 <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-2">Simulated Calldata</div>
-                 <pre className="bg-[#050505] border border-[var(--border)] rounded-[4px] p-3 text-[10px] text-[var(--text-muted)] font-mono overflow-x-auto">
-{`{
-  contractAddress: "${isPrivate ? (TONGO_CONFIG.contractAddress?.slice(0,10) + '...' || '0x_tongo') : '0x_eth_tk'}",
-  entrypoint: "${isPrivate ? 'transfer_private' : 'transfer'}",
-  calldata: [
-    "${isPrivate ? selectedEmployee.tongoPublicKey?.slice(0, 15) + '...' : selectedEmployee.walletAddress?.slice(0, 15) + '...'}",
-    "${(Number(amount || 0) * 1e18).toString()}"
-  ]
-}`}
-                 </pre>
-              </div>
+
+              <CalldataPreview calldata={builtCalldata} />
            </div>
          )}
       </div>

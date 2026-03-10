@@ -28,23 +28,34 @@ export default function Settings() {
         <h3 className="text-[14px] font-medium mb-6">Tongo Privacy Protocol</h3>
         <div className="space-y-6 border-t border-[var(--border)] pt-6">
           <div className="flex items-center justify-between">
-            <div className="text-[13px] text-[var(--text-secondary)]">Integration Status</div>
+            <div className="text-[13px] text-[var(--text-secondary)]">Status</div>
             {TONGO_CONFIG.isConfigured ? (
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[var(--status-success)]" />
                 <span className="text-[12px] text-[var(--text-primary)]">Active</span>
               </div>
             ) : (
-               <div className="flex items-center gap-2">
-                 <div className="h-1.5 w-1.5 rounded-full bg-[var(--status-error)]" />
-                 <span className="text-[12px] text-[var(--text-muted)]">Not configured</span>
-               </div>
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[var(--status-error)]" />
+                <span className="text-[12px] text-[var(--text-muted)]">Not configured</span>
+              </div>
             )}
           </div>
           <div className="space-y-1">
-             <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Wrapper Address</div>
-             <div className="font-mono text-[12px] text-[var(--text-secondary)] break-all">{TONGO_CONFIG.wrapperAddress || "—"}</div>
+            <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Contract address</div>
+            <div className="font-mono text-[12px] text-[var(--text-secondary)] break-all">
+              {TONGO_CONFIG.contractAddress ? `${TONGO_CONFIG.contractAddress.slice(0, 10)}...${TONGO_CONFIG.contractAddress.slice(-8)}` : "Not configured"}
+            </div>
           </div>
+          <div className="space-y-1">
+            <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Wrapper address</div>
+            <div className="font-mono text-[12px] text-[var(--text-secondary)] break-all">
+              {TONGO_CONFIG.wrapperAddress ? `${TONGO_CONFIG.wrapperAddress.slice(0, 10)}...${TONGO_CONFIG.wrapperAddress.slice(-8)}` : "Not configured"}
+            </div>
+          </div>
+          <p className="text-[11px] text-[var(--text-muted)]">
+            Set VITE_TONGO_CONTRACT_ADDRESS and VITE_TONGO_WRAPPER_ADDRESS in your .env file.
+          </p>
         </div>
       </div>
 

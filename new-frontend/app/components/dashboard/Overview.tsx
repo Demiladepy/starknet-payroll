@@ -35,8 +35,9 @@ export default function Overview({ onNavigate }: { onNavigate: (id: string) => v
         </div>
         <div className="card-fintech p-5 md:col-span-2 relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-5 opacity-10 font-mono text-6xl select-none">%</div>
-          <div className="text-[11px] uppercase tracking-[0.06em] text-[var(--accent)] mb-2">Privacy Rate</div>
+          <div className="text-[11px] uppercase tracking-[0.06em] text-[var(--accent)] mb-1">Privacy Rate</div>
           <div className="stat-number text-[var(--accent)]">{privacyRate}%</div>
+          <div className="text-[11px] text-[var(--text-muted)]">confidential</div>
         </div>
       </div>
 
