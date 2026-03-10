@@ -1,55 +1,55 @@
-/**
- * Unified wallet hook: prefer injected (Argent/Braavos), else Starkzap.
- * Gives a single execute() and address for transfer flows.
- */
-
 import { useAccount } from "@starknet-react/core";
-import { useStarkzap } from "~/contexts/StarkzapContext";
+import { useStarkzap } from "../contexts/StarkzapContext";
 import type { Call } from "starknet";
 
-type WalletType = "injected" | "starkzap" | null;
-
-export type ActiveWallet = {
+export interface ActiveWallet {
   address: string | null;
-  type: WalletType;
+  type: "injected" | "starkzap" | null;
   isConnected: boolean;
   walletName: string;
-  /** Execute calls; returns result with transaction_hash when available. */
-  execute: (calls: Call | Call[]) => Promise<{ transaction_hash?: string }>;
-};
+  execute: (calls: Call | Call[]) => Promise<{ transaction_hash: string }>;
+  canExecute: boolean;
+}
 
 export function useActiveWallet(): ActiveWallet {
-  const { address: injectedAddress, account, status } = useAccount();
-  const { wallet: starkzapWallet } = useStarkzap();
+  const { address: injectedAddress, account: injectedAccount, status } = useAccount();
+  const isInjectedConnected = status === "connected" && !!injectedAddress;
 
-  const isInjectedConnected = status === "connected" && !!injectedAddress && !!account;
-  const isStarkzapConnected = !!starkzapWallet;
+  const {
+    address: starkzapAddress,
+    wallet: starkzapWallet,
+    isConnected: starkzapConnected,
+  } = useStarkzap();
 
-  if (isInjectedConnected && account) {
+  // Priority: injected wallet first (has real funds)
+  if (isInjectedConnected && injectedAccount) {
     return {
-      address: injectedAddress ?? null,
+      address: injectedAddress!,
       type: "injected",
       isConnected: true,
       walletName: "Argent X / Braavos",
-      execute: async (callsOrOne: Call | Call[]) => {
-        const normalized = Array.isArray(callsOrOne) ? callsOrOne : [callsOrOne];
-        const result = await account.execute(normalized);
-        return { transaction_hash: (result as { transaction_hash?: string })?.transaction_hash };
+      canExecute: true,
+      execute: async (calls) => {
+        const callArray = Array.isArray(calls) ? calls : [calls];
+        const result = await injectedAccount.execute(callArray);
+        return { transaction_hash: result.transaction_hash };
       },
     };
   }
 
-  if (isStarkzapConnected && starkzapWallet) {
+  if (starkzapConnected && starkzapWallet) {
     return {
-      address: typeof starkzapWallet.address === "string" ? starkzapWallet.address : String(starkzapWallet.address),
+      address: starkzapAddress!,
       type: "starkzap",
       isConnected: true,
-      walletName: "Starkzap",
-      execute: async (callsOrOne: Call | Call[]) => {
-        const normalized = Array.isArray(callsOrOne) ? callsOrOne : [callsOrOne];
-        const tx = await starkzapWallet.execute(normalized);
-        const hash = (tx as { transaction_hash?: string })?.transaction_hash ?? (tx as { transactionHash?: string })?.transactionHash;
-        return { transaction_hash: hash };
+      walletName: "StarkZap",
+      canExecute: false, // demo signer has no funds
+      execute: async (calls) => {
+        const callArray = Array.isArray(calls) ? calls : [calls];
+        const tx = await starkzapWallet.execute(callArray);
+        return {
+          transaction_hash: tx.hash || tx.transaction_hash || "0x_unknown",
+        };
       },
     };
   }
@@ -59,8 +59,7 @@ export function useActiveWallet(): ActiveWallet {
     type: null,
     isConnected: false,
     walletName: "",
-    execute: async () => {
-      throw new Error("No wallet connected");
-    },
+    canExecute: false,
+    execute: async () => { throw new Error("No wallet connected"); },
   };
 }

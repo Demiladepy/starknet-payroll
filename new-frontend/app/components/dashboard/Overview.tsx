@@ -1,267 +1,115 @@
-import { useMemo, useState, useEffect, useRef } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Avatar } from "~/components/ui/avatar";
-import { useDashboard } from "~/contexts/DashboardContext";
-import { formatRelativeTime, formatCurrency } from "~/lib/format";
-import { Users, UserCheck, DollarSign, Send } from "lucide-react";
+import React from "react";
+import { useDashboardStore } from "../../stores/dashboardStore";
 
-function useCountUp(target: number, durationMs = 800) {
-  const [current, setCurrent] = useState(0);
-  const prevTarget = useRef(0);
-  useEffect(() => {
-    const startVal = prevTarget.current;
-    prevTarget.current = target;
-    const start = performance.now();
-    const frame = (now: number) => {
-      const elapsed = now - start;
-      const t = Math.min(elapsed / durationMs, 1);
-      const easeOut = 1 - (1 - t) * (1 - t);
-      setCurrent(Math.round(startVal + (target - startVal) * easeOut));
-      if (t < 1) requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  }, [target, durationMs]);
-  return current;
-}
+export default function Overview({ onNavigate }: { onNavigate: (id: string) => void }) {
+  const { employees, transfers } = useDashboardStore();
 
-export function Overview() {
-  const { employees, transfers } = useDashboard();
+  const totalEmployees = employees.length;
+  const totalPaid = transfers
+    .filter((t) => t.status === "completed")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const pendingCount = transfers.filter((t) => t.status === "pending").length;
+  const privacyRate = transfers.length
+    ? Math.round(
+        (transfers.filter((t) => t.type === "tongo_private").length / transfers.length) * 100
+      )
+    : 0;
 
-  const activeEmployees = useMemo(
-    () => employees.filter((e) => e.status === "active"),
-    [employees]
-  );
-  const totalPayroll = useMemo(
-    () => activeEmployees.reduce((s, e) => s + e.salary, 0),
-    [activeEmployees]
-  );
-  const totalTransferred = useMemo(
-    () => transfers.reduce((s, t) => s + t.amount, 0),
-    [transfers]
-  );
-
-  const departmentData = useMemo(() => {
-    const byDept: Record<string, number> = {};
-    activeEmployees.forEach((e) => {
-      byDept[e.department] = (byDept[e.department] ?? 0) + e.salary;
-    });
-    return Object.entries(byDept).map(([name, total]) => ({ name, total }));
-  }, [activeEmployees]);
-
-  const payrollTrend = useMemo(() => {
-    const months: { month: string; payroll: number }[] = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        month: d.toLocaleString("en-US", { month: "short", year: "2-digit" }),
-        payroll: totalPayroll,
-      });
-    }
-    return months;
-  }, [totalPayroll]);
-
-  const recentTransfers = useMemo(
-    () => [...transfers].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5),
-    [transfers]
-  );
-  const recentHires = useMemo(
-    () =>
-      [...employees]
-        .sort((a, b) => b.hireDate.localeCompare(a.hireDate))
-        .slice(0, 4),
-    [employees]
-  );
-
-  const countTotal = useCountUp(employees.length);
-  const countActive = useCountUp(activeEmployees.length);
-  const countPayroll = useCountUp(totalPayroll, 1000);
-  const countTransferred = useCountUp(totalTransferred, 1000);
-
-  const stats = [
-    {
-      label: "Total Employees",
-      value: countTotal,
-      icon: Users,
-      gradient: "from-blue-500/20 to-blue-600/5",
-    },
-    {
-      label: "Active Employees",
-      value: countActive,
-      icon: UserCheck,
-      gradient: "from-emerald-500/20 to-emerald-600/5",
-    },
-    {
-      label: "Monthly Payroll",
-      value: formatCurrency(countPayroll),
-      icon: DollarSign,
-      gradient: "from-amber-500/20 to-amber-600/5",
-    },
-    {
-      label: "Total Transferred",
-      value: formatCurrency(countTransferred),
-      icon: Send,
-      gradient: "from-violet-500/20 to-violet-600/5",
-    },
-  ];
+  const recentTransfers = transfers.slice(0, 5);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="page-title">Dashboard Overview</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Your payroll and team at a glance
-        </p>
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card-fintech p-5">
+          <div className="text-[#94A3B8] text-sm font-medium mb-1">Total Employees</div>
+          <div className="text-3xl font-bold font-heading">{totalEmployees}</div>
+        </div>
+        <div className="card-fintech p-5">
+          <div className="text-[#94A3B8] text-sm font-medium mb-1">Total Paid (ETH)</div>
+          <div className="text-3xl font-bold font-heading">{totalPaid.toFixed(2)}</div>
+        </div>
+        <div className="card-fintech p-5">
+          <div className="text-[#94A3B8] text-sm font-medium mb-1">Pending Transfers</div>
+          <div className="text-3xl font-bold font-heading">{pendingCount}</div>
+        </div>
+        <div className="card-fintech p-5">
+          <div className="text-[#94A3B8] text-sm font-medium mb-1">Privacy Rate</div>
+          <div className="text-3xl font-bold font-heading text-[#00E5CC]">{privacyRate}%</div>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, gradient }) => (
-          <Card
-            key={label}
-            className="overflow-hidden border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm"
-          >
-            <CardContent className="pt-6">
-              <div className={`rounded-lg bg-gradient-to-br ${gradient} p-4`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                      {label}
-                    </p>
-                    <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                      {value}
-                    </p>
-                  </div>
-                  <Icon className="size-8 text-zinc-400 dark:text-zinc-500" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Quick Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => onNavigate("new_transfer")}
+          className="btn-fintech-primary px-6 py-2.5 flex items-center gap-2 text-sm"
+        >
+          <span>💸</span> New Transfer
+        </button>
+        <button
+          onClick={() => onNavigate("employees")}
+          className="bg-white/5 border border-white/10 hover:bg-white/10 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 text-sm transition"
+        >
+          <span>👥</span> Manage Employees
+        </button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
-          <CardHeader>
-            <CardTitle className="section-header">
-              Monthly payroll trend
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={payrollTrend}>
-                  <defs>
-                    <linearGradient id="fillPayroll" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
-                  <XAxis dataKey="month" className="text-xs" tick={{ fill: "currentColor" }} />
-                  <YAxis className="text-xs" tick={{ fill: "currentColor" }} tickFormatter={(v) => `$${v / 1000}k`} />
-                  <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Payroll"]} />
-                  <Area
-                    type="monotone"
-                    dataKey="payroll"
-                    stroke="var(--color-primary)"
-                    fill="url(#fillPayroll)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
-          <CardHeader>
-            <CardTitle className="section-header">
-              Department salary distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={departmentData} layout="vertical" margin={{ left: 0, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
-                  <XAxis type="number" tickFormatter={(v) => `$${v / 1000}k`} className="text-xs" />
-                  <YAxis type="category" dataKey="name" width={80} className="text-xs" tick={{ fill: "currentColor" }} />
-                  <Tooltip formatter={(v: number | undefined) => [formatCurrency(v ?? 0), "Total"]} />
-                  <Bar dataKey="total" fill="var(--color-primary)" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
-          <CardHeader>
-            <CardTitle className="section-header">Recent transfers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentTransfers.length === 0 ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">No transfers yet. Run a payment from Employees or Transfers to see activity here.</p>
-            ) : (
-              <ul className="space-y-3">
-                {recentTransfers.map((t) => (
-                  <li
-                    key={t.id}
-                    className="flex items-center justify-between rounded-md border border-zinc-200/70 dark:border-zinc-800/70 py-2 px-3 bg-zinc-50/50 dark:bg-zinc-900/30"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar name={t.to.name} className="size-8" />
-                      <div>
-                        <p className="text-sm font-medium">{t.to.name}</p>
-                        <p className="caption">{formatRelativeTime(t.timestamp)}</p>
-                      </div>
-                    </div>
-                    <span className="font-semibold text-green-600 dark:text-green-400">
-                      {formatCurrency(t.amount)}
+      {/* Recent Transfers */}
+      <div className="card-fintech overflow-hidden">
+        <div className="p-5 border-b border-white/5 font-heading font-semibold">
+          Recent Transfers
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-[#131825]/50 border-b border-white/5 text-xs uppercase text-[#64748B] font-semibold">
+              <tr>
+                <th className="px-5 py-3 rounded-tl-xl">Employee</th>
+                <th className="px-5 py-3">Amount</th>
+                <th className="px-5 py-3">Type</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm">
+              {recentTransfers.map((tx) => (
+                <tr key={tx.id} className="hover:bg-white/[0.02]">
+                  <td className="px-5 py-4 font-medium">{tx.employeeName}</td>
+                  <td className="px-5 py-4 font-mono">{tx.amount.toFixed(2)} ETH</td>
+                  <td className="px-5 py-4">
+                    {tx.type === "tongo_private" ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-400 text-xs font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+                        🔒 Private
+                      </span>
+                    ) : (
+                      <span className="text-[#94A3B8]">Standard</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span
+                      className={`capitalize inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${
+                        tx.status === "completed"
+                          ? "bg-green-500/10 text-green-400"
+                          : tx.status === "pending"
+                          ? "bg-amber-500/10 text-amber-400"
+                          : "bg-red-500/10 text-red-400"
+                      }`}
+                    >
+                      {tx.status}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-zinc-200/70 dark:border-zinc-800/70 bg-white/80 backdrop-blur dark:bg-zinc-950/30 shadow-sm">
-          <CardHeader>
-            <CardTitle className="section-header">Recent hires</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {recentHires.map((e) => (
-                <div
-                  key={e.id}
-                  className="flex items-center gap-3 rounded-md border border-zinc-200/70 dark:border-zinc-800/70 p-3 bg-zinc-50/50 dark:bg-zinc-900/30"
-                >
-                  <Avatar name={e.name} className="size-10" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{e.name}</p>
-                    <p className="caption truncate">{e.role}</p>
-                  </div>
-                </div>
+                  </td>
+                  <td className="px-5 py-4 text-[#94A3B8]">
+                    {new Date(tx.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
               ))}
-            </div>
-            {recentHires.length === 0 && (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center">No team members yet. Add your first employee to get started.</p>
-            )}
-          </CardContent>
-        </Card>
+            </tbody>
+          </table>
+          {recentTransfers.length === 0 && (
+            <div className="p-8 text-center text-[#64748B]">No recent transfers.</div>
+          )}
+        </div>
       </div>
     </div>
   );

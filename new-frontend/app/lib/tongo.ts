@@ -1,121 +1,14 @@
-/**
- * Tongo integration for private balances and transfers.
- * Uses @fatsolutions/tongo-sdk when VITE_TONGO_CONTRACT_ADDRESS is set;
- * otherwise returns mock/placeholder values so the UI works.
- */
-
-import { contractAddresses } from "./starknet";
-
-const TONGO_ADDRESS = contractAddresses.tongo;
-const TONGO_WRAPPER = contractAddresses.tongoWrapper;
-
-/** Tongo config for UI and transfer logic. */
 export const TONGO_CONFIG = {
-  contractAddress: TONGO_ADDRESS ?? "",
-  wrapperAddress: TONGO_WRAPPER ?? "",
-  get isConfigured(): boolean {
+  contractAddress: import.meta.env.VITE_TONGO_CONTRACT_ADDRESS || "",
+  wrapperAddress: import.meta.env.VITE_TONGO_WRAPPER_ADDRESS || "",
+  get isConfigured() {
     return Boolean(this.contractAddress && this.wrapperAddress);
   },
 };
 
-export function getTongoContractAddress(): string | null {
-  return TONGO_ADDRESS || null;
-}
-
-export function isTongoConfigured(): boolean {
-  return !!TONGO_ADDRESS;
-}
-
-/**
- * Whether a transfer can use the private (Tongo) path.
- * Requires: Tongo configured, employee has Tongo public key, company has sender key.
- */
 export function canUsePrivateTransfer(
   employee: { tongoPublicKey?: string },
   hasSenderKey: boolean
 ): boolean {
-  return (
-    isTongoConfigured() &&
-    Boolean(employee.tongoPublicKey) &&
-    hasSenderKey
-  );
-}
-
-/** Format small units (e.g. 6 decimals) to display string */
-export function formatTongoAmount(value: bigint, decimals = 6): string {
-  const div = 10 ** decimals;
-  const whole = value / BigInt(div);
-  const frac = value % BigInt(div);
-  const fracStr = frac.toString().padStart(decimals, "0").slice(0, decimals);
-  return fracStr ? `${whole}.${fracStr}` : `${whole}`;
-}
-
-export interface TongoDecryptedState {
-  balance: bigint;
-  pending: bigint;
-  nonce: bigint;
-}
-
-/**
- * Fetch decrypted balance for the current Tongo account.
- * Returns null if Tongo is not configured or on error (caller can show placeholder).
- * Requires Starknet signer and Tongo private key (ElGamal scalar).
- */
-export async function getDecryptedBalance(
-  signer: { execute: (calls: unknown[]) => Promise<{ transaction_hash: string }> },
-  tongoPrivateKey: string
-): Promise<TongoDecryptedState | null> {
-  if (!TONGO_ADDRESS) return null;
-  try {
-    const { Account: TongoAccount } = await import("@fatsolutions/tongo-sdk");
-    // SDK may use a different starknet version; cast to satisfy types
-    const tongoAccount = new TongoAccount(tongoPrivateKey, TONGO_ADDRESS, signer as never);
-    const state = await (tongoAccount as { stateDeciphered?: () => Promise<{ balance?: bigint; pending?: bigint; nonce?: bigint }> }).stateDeciphered?.();
-    return state
-      ? {
-          balance: state.balance ?? 0n,
-          pending: state.pending ?? 0n,
-          nonce: state.nonce ?? 0n,
-        }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Build calldata for a Tongo transfer (to be executed with signer.execute).
- * Returns null if Tongo not configured or recipient public key missing.
- */
-export async function buildTransferCall(
-  senderTongoPrivateKey: string,
-  recipientPublicKey: string,
-  amount: bigint
-): Promise<{ contractAddress: string; entrypoint: string; calldata: string[] } | null> {
-  if (!TONGO_ADDRESS) return null;
-  try {
-    const { Account: TongoAccount } = await import("@fatsolutions/tongo-sdk");
-    const tongoAccount = new TongoAccount(senderTongoPrivateKey, TONGO_ADDRESS, null as never);
-    const op = await (tongoAccount as unknown as { transfer: (d: { to: string; amount: bigint }) => Promise<{ toCalldata: () => unknown }> }).transfer({
-      to: recipientPublicKey,
-      amount,
-    });
-    const raw = op.toCalldata();
-    if (!raw) return null;
-    if (typeof raw === "object" && "contractAddress" in raw) {
-      const c = raw as { contractAddress: string; entrypoint: string; calldata?: string[] };
-      return {
-        contractAddress: c.contractAddress,
-        entrypoint: c.entrypoint,
-        calldata: Array.isArray(c.calldata) ? c.calldata : [],
-      };
-    }
-    if (Array.isArray(raw)) {
-      const [contractAddress, entrypoint, ...rest] = raw as [string, string, ...string[]];
-      return { contractAddress, entrypoint, calldata: rest };
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  return TONGO_CONFIG.isConfigured && Boolean(employee.tongoPublicKey) && hasSenderKey;
 }

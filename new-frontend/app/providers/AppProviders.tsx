@@ -1,72 +1,44 @@
-import { useState, useEffect, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  StarknetConfig,
-  jsonRpcProvider,
-  useInjectedConnectors,
-  argent,
-  braavos,
-  starkscan,
-} from "@starknet-react/core";
+import React from "react";
 import { sepolia } from "@starknet-react/chains";
-import { StarkzapProvider } from "~/contexts/StarkzapContext";
+import {
+  StarknetConfig, useInjectedConnectors,
+  argent, braavos, voyager, jsonRpcProvider,
+} from "@starknet-react/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { StarkzapProvider } from "../contexts/StarkzapContext";
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 60 * 1000 },
-  },
+  defaultOptions: { queries: { retry: 2, staleTime: 30_000 } },
 });
 
-/** Starknet v9 RPC; specVersion required for current starknet.js. */
-const starknetProvider = jsonRpcProvider({
-  rpc: (chain) => {
-    const nodeUrl =
-      import.meta.env.VITE_STARKNET_RPC_URL ??
-      chain.rpcUrls?.public?.http?.[0] ??
-      "https://starknet-sepolia.public.blastapi.io";
-    return { nodeUrl, specVersion: "0.10.0" as const };
-  },
-});
+function rpc() {
+  return {
+    nodeUrl: import.meta.env.VITE_STARKNET_RPC_URL || "https://starknet-sepolia.public.blastapi.io",
+  };
+}
 
-function StarknetConnectorsClient({ children }: { children: ReactNode }) {
+function StarknetProviders({ children }: { children: React.ReactNode }) {
   const { connectors } = useInjectedConnectors({
     recommended: [argent(), braavos()],
     includeRecommended: "onlyIfNoConnectors",
   });
-
   return (
     <StarknetConfig
       chains={[sepolia]}
-      provider={starknetProvider}
+      provider={jsonRpcProvider({ rpc })}
       connectors={connectors}
-      queryClient={queryClient}
-      explorer={starkscan}
+      explorer={voyager}
       autoConnect
     >
-      {children}
+      <StarkzapProvider>{children}</StarkzapProvider>
     </StarknetConfig>
   );
 }
 
-/** Skip Starknet on server (RpcProvider throws "unsupported channel" in Node). Client only: full StarknetConfig. */
-function StarknetConnectors({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted || typeof window === "undefined") {
-    return <>{children}</>;
-  }
-  return (
-    <StarknetConnectorsClient>
-      <StarkzapProvider>{children}</StarkzapProvider>
-    </StarknetConnectorsClient>
-  );
-}
-
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <StarknetConnectors>{children}</StarknetConnectors>
+      <StarknetProviders>{children}</StarknetProviders>
     </QueryClientProvider>
   );
 }

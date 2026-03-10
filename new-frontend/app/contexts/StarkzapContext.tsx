@@ -1,112 +1,142 @@
-import {
+import React, {
   createContext,
-  useCallback,
   useContext,
-  useEffect,
   useState,
+  useCallback,
+  useRef,
   type ReactNode,
 } from "react";
-import type { WalletInterface } from "starkzap";
 
-type StarkzapContextValue = {
-  /** Wallet when connected via Starkzap; null otherwise */
-  wallet: WalletInterface | null;
-  /** Whether we are currently connecting (onboard in progress) */
-  connecting: boolean;
-  /** Connect via Starkzap using a demo in-memory signer (for hackathon visibility) */
-  connectStarkzap: () => Promise<WalletInterface>;
-  /** Disconnect Starkzap wallet */
-  disconnectStarkzap: () => Promise<void>;
-  /** SDK instance (sepolia) for use in transfer flows if needed */
-  sdk: import("starkzap").StarkSDK | null;
-};
+interface StarkzapWallet {
+  address: string;
+  execute: (calls: any[], options?: any) => Promise<any>;
+  transfer: (token: any, transfers: any[]) => Promise<any>;
+  balanceOf: (token: any) => Promise<any>;
+  isDeployed: () => Promise<boolean>;
+  deploy: (options?: any) => Promise<any>;
+  ensureReady: (options?: any) => Promise<void>;
+  getProvider: () => any;
+  getChainId: () => any;
+}
+
+interface StarkzapContextValue {
+  isConnected: boolean;
+  isConnecting: boolean;
+  address: string | null;
+  wallet: StarkzapWallet | null;
+  error: string | null;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  clearError: () => void;
+}
 
 const StarkzapContext = createContext<StarkzapContextValue | null>(null);
 
-/** Generate a random Starknet-style private key (32 bytes hex) for demo */
-function randomPrivateKey(): string {
-  const bytes = new Uint8Array(32);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  }
-  return "0x" + Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+export function useStarkzap(): StarkzapContextValue {
+  const ctx = useContext(StarkzapContext);
+  if (!ctx) throw new Error("useStarkzap must be used within <StarkzapProvider>");
+  return ctx;
 }
 
 export function StarkzapProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWallet] = useState<WalletInterface | null>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [sdk, setSdk] = useState<import("starkzap").StarkSDK | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<StarkzapWallet | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const sdkRef = useRef<any>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    if (typeof window === "undefined") return;
-    (async () => {
-      try {
-        const { StarkSDK } = await import("starkzap");
-        if (cancelled) return;
-        setSdk(new StarkSDK({ network: "sepolia" }));
-      } catch {
-        // ignore; user can still attempt connect which will lazy-init
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const connect = useCallback(async () => {
+    setIsConnecting(true);
+    setError(null);
 
-  const connectStarkzap = useCallback(async () => {
-    setConnecting(true);
     try {
-      const { StarkSDK, StarkSigner } = await import("starkzap");
-      const localSdk = sdk ?? new StarkSDK({ network: "sepolia" });
-      if (!sdk) setSdk(localSdk);
+      // STEP 1: Dynamic import — avoids SSR crash
+      const starkzapModule = await import("starkzap");
+      const { StarkZap, StarkSigner } = starkzapModule;
 
-      const privateKey = randomPrivateKey();
+      // STEP 2: Create SDK instance (reuse across reconnects)
+      const network = (import.meta.env.VITE_STARKNET_NETWORK as any) || "sepolia";
+      if (!sdkRef.current) {
+        sdkRef.current = new StarkZap({
+          network,
+          explorer: { provider: "starkscan" },
+        });
+      }
+      const sdk = sdkRef.current;
+
+      // STEP 3: Random private key for demo signer
+      // 31 bytes to stay within Stark curve order
+      const randomBytes = new Uint8Array(31);
+      crypto.getRandomValues(randomBytes);
+      const privateKey = "0x" + Array.from(randomBytes)
+        .map((b) => b.toString(16).padStart(2, "0")).join("");
       const signer = new StarkSigner(privateKey);
-      const w = await localSdk.connectWallet({
+
+      // STEP 4: Connect using connectWallet() — NOT onboard()
+      // connectWallet() does NOT attempt deployment.
+      // This is the fix — onboard() with deploy:"if_needed" fails without ETH.
+      const connectedWallet: StarkzapWallet = await sdk.connectWallet({
         account: { signer },
       });
-      await w.ensureReady({ deploy: "if_needed" }).catch(() => {
-        // Still set wallet so UI shows Starkzap connected; deploy may fail without gas
-      });
-      setWallet(w);
-      return w;
-    } catch (e) {
-      console.error("Starkzap connect failed:", e);
-      throw e instanceof Error ? e : new Error("Starkzap connect failed");
-    } finally {
-      setConnecting(false);
-    }
-  }, [sdk]);
 
-  const disconnectStarkzap = useCallback(async () => {
-    if (wallet) {
+      // STEP 5: Get address
+      const walletAddress = typeof connectedWallet.address === "string"
+        ? connectedWallet.address
+        : String(connectedWallet.address);
+
+      // STEP 6: Check deployment status (don't fail if undeployed)
       try {
-        await wallet.disconnect();
-      } catch {}
+        const deployed = await connectedWallet.isDeployed();
+        if (!deployed) {
+          console.warn("[StarkZap] Account not deployed. Transfers need deployment + funds.");
+        }
+      } catch (e) {
+        console.warn("[StarkZap] Could not check deployment:", e);
+      }
+
+      // STEP 7: Success
+      setWallet(connectedWallet);
+      setAddress(walletAddress);
+      setIsConnected(true);
+      console.log("[StarkZap] Connected!", { address: walletAddress, network });
+
+    } catch (err: any) {
+      let message = err?.message || "Unknown error connecting to StarkZap";
+      if (message.includes("fetch") || message.includes("network")) {
+        message = "Network error — check internet and RPC URL";
+      } else if (message.includes("is not a function")) {
+        message = "StarkZap SDK API mismatch. Run: npm install starkzap";
+      } else if (message.includes("Module not found")) {
+        message = "StarkZap not installed. Run: npm install starkzap";
+      }
+      console.error("[StarkZap] Failed:", err);
+      setError(message);
+      setIsConnected(false);
       setWallet(null);
+      setAddress(null);
+    } finally {
+      setIsConnecting(false);
     }
-  }, [wallet]);
+  }, []);
+
+  const disconnect = useCallback(() => {
+    setWallet(null);
+    setAddress(null);
+    setIsConnected(false);
+    setError(null);
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
 
   return (
-    <StarkzapContext.Provider
-      value={{
-        wallet,
-        connecting,
-        connectStarkzap,
-        disconnectStarkzap,
-        sdk,
-      }}
-    >
+    <StarkzapContext.Provider value={{
+      isConnected, isConnecting, address, wallet, error,
+      connect, disconnect, clearError,
+    }}>
       {children}
     </StarkzapContext.Provider>
   );
 }
 
-export function useStarkzap() {
-  const ctx = useContext(StarkzapContext);
-  if (!ctx) throw new Error("useStarkzap must be used within StarkzapProvider");
-  return ctx;
-}
+export default StarkzapContext;

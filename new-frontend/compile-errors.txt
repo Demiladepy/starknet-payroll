@@ -1,0 +1,8 @@
+﻿app/components/dashboard/EmployeeFormSheet.tsx(9,10): error TS2305: Module '"~/lib/constants"' has no exported member 'DEPARTMENTS'.
+app/components/dashboard/EmployeeFormSheet.tsx(109,31): error TS7006: Parameter 'd' implicitly has an 'any' type.
+app/components/dashboard/NewTransfer.tsx(2,29): error TS1484: 'Employee' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+app/contexts/StarkzapContext.tsx(62,11): error TS2322: Type 'string' is not assignable to type '"sepolia" | "mainnet" | "devnet" | NetworkPreset | undefined'.
+app/contexts/StarkzapContext.tsx(86,36): error TS2339: Property 'toString' does not exist on type 'never'.
+app/lib/employeeSchema.ts(2,10): error TS2305: Module '"~/lib/constants"' has no exported member 'DEPARTMENTS'.
+app/routes/HomeHeroCTAs.client.tsx(16,35): error TS2339: Property 'connecting' does not exist on type 'StarkzapContextValue'.
+app/routes/HomeHeroCTAs.client.tsx(16,67): error TS2339: Property 'connectStarkzap' does not exist on type 'StarkzapContextValue'.
