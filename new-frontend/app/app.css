@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: "Geist";
-  src: url("https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Variable.woff2") format("woff2");
+  font-family: "Inter";
+  src: url("https://fonts.gstatic.com/s/inter/v18/UcCo3FwrK3iLTcviYwYZ90OmSqg.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 100 900;
@@ -56,7 +56,7 @@
 }
 
 @theme {
-  --font-sans: "Geist", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, monospace;
 }
 

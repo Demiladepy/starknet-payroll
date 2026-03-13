@@ -15,12 +15,13 @@ import { AppProviders } from "./providers/AppProviders";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
+  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
   { rel: "preconnect", href: "https://cdn.jsdelivr.net", crossOrigin: "anonymous" },
   {
     rel: "preload",
     as: "font",
     type: "font/woff2",
-    href: "https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Variable.woff2",
+    href: "https://fonts.gstatic.com/s/inter/v18/UcCo3FwrK3iLTcviYwYZ90OmSqg.woff2",
     crossOrigin: "anonymous",
   },
   {

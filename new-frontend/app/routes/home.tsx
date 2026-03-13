@@ -175,7 +175,7 @@ export default function Home() {
         <div className="absolute inset-0 hero-mesh" />
         <ParticleField />
 
-        <div className="relative z-10 max-w-[1200px] mx-auto px-8 flex flex-col md:flex-row items-center gap-16 md:gap-24">
+        <div className="relative z-10 max-w-[1200px] w-full mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-12 md:gap-16">
           {/* Text */}
           <div className="flex-1 space-y-8 text-center md:text-left">
             <motion.div
@@ -195,7 +195,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.35 }}
-              className="text-[42px] md:text-[56px] leading-[1.05] font-bold tracking-tight"
+              className="text-[44px] md:text-[60px] leading-[1.05] font-semibold tracking-[-0.03em]"
             >
               Payroll without
               <br />
@@ -206,7 +206,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
-              className="text-[16px] md:text-[17px] text-[var(--text-secondary)] max-w-[480px] leading-relaxed mx-auto md:mx-0"
+              className="text-[16px] md:text-[18px] text-[var(--text-secondary)] max-w-[480px] leading-[1.7] font-light mx-auto md:mx-0"
             >
               Companies leak salary data on public blockchains. We fix that. Pay
               employees with fully confidential transfers using ElGamal
@@ -259,14 +259,15 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* 3D Shield */}
+          {/* Hero Fingerprint */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="hidden md:flex flex-1 justify-center"
+            className="hidden md:flex items-center justify-center shrink-0"
+            style={{ width: 420, height: 420 }}
           >
-            <HeroFingerprint size={300} />
+            <HeroFingerprint size={320} />
           </motion.div>
         </div>
 
@@ -294,11 +295,11 @@ export default function Home() {
             <div className="text-[11px] font-bold tracking-[0.15em] uppercase text-[var(--accent-cyan)] mb-4">
               Protocol Stack
             </div>
-            <h2 className="text-[32px] md:text-[40px] font-bold tracking-tight mb-4">
+            <h2 className="text-[32px] md:text-[42px] font-semibold tracking-[-0.03em] mb-4">
               Built for{" "}
               <span className="gradient-text">confidential payroll</span>
             </h2>
-            <p className="text-[16px] text-[var(--text-secondary)] max-w-[520px] mx-auto">
+            <p className="text-[16px] text-[var(--text-secondary)] max-w-[520px] mx-auto leading-[1.7] font-light">
               Three layers of technology ensuring your salary data stays
               private, accessible, and verifiable.
             </p>
@@ -343,7 +344,7 @@ export default function Home() {
             transition={{ duration: 0.7 }}
             className="text-center mb-20"
           >
-            <h2 className="text-[32px] md:text-[40px] font-bold tracking-tight mb-4">
+            <h2 className="text-[32px] md:text-[42px] font-semibold tracking-[-0.03em] mb-4">
               How it <span className="gradient-text-privacy">works</span>
             </h2>
           </motion.div>
@@ -398,7 +399,7 @@ export default function Home() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <h2 className="text-[28px] md:text-[36px] font-bold tracking-tight mb-4">
+            <h2 className="text-[28px] md:text-[38px] font-semibold tracking-[-0.03em] mb-4">
               Start paying privately
             </h2>
             <p className="text-[15px] text-[var(--text-secondary)] mb-8 leading-relaxed">
