@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Shield, Lock, Zap, EyeOff, ArrowRight, ChevronDown } from "lucide-react";
+import { BrandLogo, HeroFingerprint, FingerprintLogo } from "../components/FingerprintLogo";
 
 /* ---------------------------------------------------------------------------
    Animated particles background (CSS-driven, lightweight)
@@ -49,74 +50,6 @@ function ParticleField() {
           }}
         />
       ))}
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------------------------
-   3D rotating shield visualisation
-   --------------------------------------------------------------------------- */
-function Shield3D() {
-  return (
-    <div className="shield-3d w-[280px] h-[280px] md:w-[340px] md:h-[340px] flex items-center justify-center relative">
-      {/* Outer conic gradient ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 0deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink), var(--accent-cyan))",
-          opacity: 0.1,
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* Middle ring with dots */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{ inset: "15%" , border: "1px solid var(--accent-border)" }}
-        animate={{ rotate: -360 }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-      >
-        {[0, 60, 120, 180, 240, 300].map((deg) => (
-          <div
-            key={deg}
-            className="absolute w-1.5 h-1.5 rounded-full bg-[var(--accent-cyan)]"
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: `rotate(${deg}deg) translateX(70px) translate(-50%, -50%)`,
-              boxShadow: "0 0 8px var(--accent-cyan)",
-            }}
-          />
-        ))}
-      </motion.div>
-
-      {/* Inner shield icon */}
-      <div className="shield-3d-inner relative z-10">
-        <motion.div
-          className="w-[120px] h-[120px] md:w-[150px] md:h-[150px] flex items-center justify-center relative"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <div
-            className="absolute inset-0 rounded-2xl"
-            style={{
-              background:
-                "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(139,92,246,0.15))",
-              border: "1px solid rgba(0,212,255,0.2)",
-              boxShadow:
-                "0 0 40px rgba(0,212,255,0.15), inset 0 0 30px rgba(0,212,255,0.05)",
-              transform: "rotate(45deg)",
-            }}
-          />
-          <Lock
-            className="relative z-10 text-[var(--accent-cyan)]"
-            size={48}
-            strokeWidth={1.5}
-          />
-        </motion.div>
-      </div>
     </div>
   );
 }
@@ -213,16 +146,8 @@ export default function Home() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <div className="flex items-center gap-2">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--accent-cyan), var(--accent-purple))",
-            }}
-          >
-            <Shield size={14} className="text-white" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <BrandLogo size={30} />
           <span className="text-[15px] font-bold tracking-tight">
             StarkPayroll
           </span>
@@ -341,7 +266,7 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.4 }}
             className="hidden md:flex flex-1 justify-center"
           >
-            <Shield3D />
+            <HeroFingerprint size={300} />
           </motion.div>
         </div>
 
@@ -493,7 +418,7 @@ export default function Home() {
       <footer className="py-12 text-center border-t border-[var(--border)]">
         <div className="flex items-center justify-center gap-6 text-[12px] text-[var(--text-muted)]">
           <span className="flex items-center gap-1.5">
-            <Shield size={12} className="text-[var(--accent-cyan)]" />
+            <FingerprintLogo size={14} gradient={false} className="text-[var(--accent-cyan)]" />
             Built on Starknet
           </span>
           <span className="text-[var(--border)]">|</span>

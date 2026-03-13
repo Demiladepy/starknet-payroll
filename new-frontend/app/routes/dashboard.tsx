@@ -13,14 +13,14 @@ import {
   ArrowUpRight,
   Plus,
   Settings as SettingsIcon,
-  Shield,
 } from "lucide-react";
+import { BrandLogo } from "../components/FingerprintLogo";
 
 const pageTransition = {
   initial: { opacity: 0, y: 12, filter: "blur(4px)" },
   animate: { opacity: 1, y: 0, filter: "blur(0px)" },
   exit: { opacity: 0, y: -8, filter: "blur(4px)" },
-  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
+  transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] },
 };
 
 export default function DashboardLayout() {
@@ -73,16 +73,8 @@ export default function DashboardLayout() {
       {/* ── Sidebar ── */}
       <aside className="w-[240px] sidebar-glass border-r border-[var(--border)] flex flex-col shrink-0">
         {/* Logo */}
-        <div className="h-[56px] flex items-center gap-2 px-6 border-b border-[var(--border)] shrink-0">
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--accent-cyan), var(--accent-purple))",
-            }}
-          >
-            <Shield size={13} className="text-white" />
-          </div>
+        <div className="h-[56px] flex items-center gap-2.5 px-6 border-b border-[var(--border)] shrink-0">
+          <BrandLogo size={30} />
           <span className="text-[14px] font-bold tracking-tight">
             StarkPayroll
           </span>
