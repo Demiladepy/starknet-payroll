@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardStore } from "../../stores/dashboardStore";
 import { useActiveWallet } from "../../hooks/useActiveWallet";
 import {
@@ -9,7 +10,7 @@ import {
 } from "../../lib/tongo";
 import { useToast } from "../../contexts/ToastContext";
 import { isMockTxHash } from "../../lib/constants";
-import { Lock, ArrowUpRight, Eye, EyeOff } from "lucide-react";
+import { Lock, ArrowUpRight, Eye, EyeOff, Shield, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 type Step = "select" | "details" | "review" | "submit";
 
@@ -24,7 +25,7 @@ function CalldataPreview({ calldata }: { calldata: unknown[] | null }) {
       <summary className="text-xs text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none">
         Transaction calldata
       </summary>
-      <pre className="mt-2 p-3 bg-[var(--bg-base)] border border-[var(--border)] rounded text-[11px] font-mono text-[var(--text-muted)] overflow-x-auto max-h-[200px] overflow-y-auto">
+      <pre className="mt-2 p-3 bg-[var(--bg-base)] border border-[var(--border)] rounded-lg text-[11px] font-mono text-[var(--text-muted)] overflow-x-auto max-h-[200px] overflow-y-auto">
         {JSON.stringify(
           calldata,
           (_, value) => (typeof value === "bigint" ? value.toString() : value),
@@ -40,7 +41,6 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
   const { address: walletAddress, type: walletType, execute, walletName, isConnected } = useActiveWallet();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<Step>("select");
   const [selectedEmpId, setSelectedEmpId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -64,8 +64,6 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
     !!selectedEmployee &&
     canUsePrivateTransfer(selectedEmployee, Boolean(companyKey.trim()));
 
-  const transferType: "tongo_private" | "standard" = canPrivate ? "tongo_private" : "standard";
-
   const pathInfo = useMemo(
     () => getTransferPath(selectedEmployee ?? null, Boolean(companyKey.trim()), isConnected),
     [selectedEmployee, companyKey, isConnected]
@@ -76,9 +74,9 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
     if (msg.includes("Cannot find module") || msg.includes("Module not found"))
       return "Tongo SDK not installed. Run: npm install @fatsolutions/tongo-sdk";
     if (msg.includes("Could not find a transfer function"))
-      return "Tongo SDK API mismatch. Check discovery steps in the Tongo prompt.";
+      return "Tongo SDK API mismatch.";
     if (msg.includes("insufficient") || msg.includes("balance") || msg.includes("dont have enough"))
-      return "Insufficient Tongo balance. Fund your Tongo account first.";
+      return "Insufficient Tongo balance. Fund your account first.";
     if (msg.includes("Invalid") && msg.includes("key"))
       return "Invalid Tongo key format. Keys should be hex strings starting with 0x.";
     if (msg.includes("nonce") || msg.includes("TRANSACTION_EXECUTION_ERROR"))
@@ -134,8 +132,8 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
           });
           toast(
             isMockTxHash(hash)
-              ? `Transfer recorded — ${hash.slice(0, 10)}…${hash.slice(-8)}`
-              : `Transfer submitted — ${hash.slice(0, 10)}…${hash.slice(-8)}`,
+              ? `Transfer recorded - ${hash.slice(0, 10)}...${hash.slice(-8)}`
+              : `Transfer submitted - ${hash.slice(0, 10)}...${hash.slice(-8)}`,
             "success"
           );
         } catch (execErr) {
@@ -168,7 +166,7 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
           txHash: hash,
           createdAt: new Date().toISOString(),
         });
-        toast(`Transfer recorded — ${hash.slice(0, 10)}…${hash.slice(-8)}`, "success");
+        toast(`Transfer recorded - ${hash.slice(0, 10)}...${hash.slice(-8)}`, "success");
       }
     } catch (buildErr) {
       const errMsg = showTongoError(buildErr);
@@ -179,179 +177,266 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
     }
   }
 
-  const handleSelectEmp = (e: React.ChangeEvent<HTMLSelectElement>) =>
-    setSelectedEmpId(e.target.value);
-  const handleTransfer = () => void confirm();
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_300px] gap-8 max-w-6xl mx-auto items-start">
-      
-      {/* Col 1: Steps Nav */}
-      <div className="hidden md:block sticky top-8">
-        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[5px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-[1px] before:bg-gradient-to-b before:from-transparent before:via-[var(--border)] before:to-transparent">
-          <div className="flex items-center gap-4">
-            <div className="h-3 w-3 rounded-full bg-[var(--accent)] z-10 shrink-0" />
-            <div className="text-[13px] font-medium text-[var(--accent)]">Details</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="h-3 w-3 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] z-10 shrink-0" />
-            <div className="text-[13px] font-medium text-[var(--text-muted)]">Privacy</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="h-3 w-3 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] z-10 shrink-0" />
-            <div className="text-[13px] font-medium text-[var(--text-muted)]">Submit</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Col 2: Active Step Form */}
-      <div className="card-fintech p-8 space-y-8 min-h-[400px]">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8 max-w-5xl mx-auto items-start">
+      {/* Main Form */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="card-glass p-8 space-y-8"
+      >
         {/* Recipient */}
         <div className="space-y-3">
-          <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Recipient</label>
+          <label className="block text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            Recipient
+          </label>
           <select
             value={selectedEmpId}
-            onChange={handleSelectEmp}
-            className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[13px] text-[var(--text-primary)] focus-ring appearance-none"
+            onChange={(e) => setSelectedEmpId(e.target.value)}
+            className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] text-[var(--text-primary)] focus-ring appearance-none"
           >
             <option value="" disabled>Select employee</option>
-            {employees.map(e => <option key={e.id} value={e.id}>{e.name} ({e.role})</option>)}
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name} ({e.role})
+              </option>
+            ))}
           </select>
         </div>
 
-        {/* Amount & Note */}
+        {/* Amount & Memo */}
         <div className="grid grid-cols-[1.5fr_1fr] gap-4">
-           <div className="space-y-3">
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Amount (ETH)</label>
+          <div className="space-y-3">
+            <label className="block text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Amount (ETH)
+            </label>
             <input
               type="number"
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[14px] font-mono text-[var(--text-primary)] focus-ring"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-lg px-4 py-3 text-[16px] font-mono text-[var(--text-primary)] focus-ring"
             />
           </div>
           <div className="space-y-3">
-            <label className="block text-[12px] font-medium text-[var(--text-secondary)]">Memo</label>
+            <label className="block text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Memo
+            </label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Optional"
-              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[6px] px-3 py-2 text-[13px] text-[var(--text-primary)] focus-ring"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-lg px-4 py-3 text-[13px] text-[var(--text-primary)] focus-ring"
             />
           </div>
         </div>
 
-        {/* Company Tongo key — only when Tongo configured and employee has public key */}
-        {TONGO_CONFIG.isConfigured && selectedEmployee?.tongoPublicKey && (
-          <div className="space-y-3 pt-6 border-t border-[var(--border)]">
-            <div className="flex items-center justify-between">
-              <label className="block text-[12px] font-medium text-[var(--text-secondary)]">
-                Company Tongo key
-              </label>
-              <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Not stored</div>
-            </div>
-            <p className="text-[11px] text-[var(--text-muted)]">
-              Used to build the encrypted transfer proof. Not stored.
-            </p>
-            
-            <div className="relative">
-              <input
-                type={showKey ? "text" : "password"}
-                value={companyKey}
-                onChange={(e) => setCompanyKey(e.target.value)}
-                placeholder="0x..."
-                className="w-full bg-[#050505] border border-[var(--border)] rounded-[6px] pl-3 pr-10 py-2.5 text-[13px] font-mono text-[var(--accent)] focus-ring placeholder:text-[#333]"
-              />
-              <button 
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Company Tongo key */}
+        <AnimatePresence>
+          {TONGO_CONFIG.isConfigured && selectedEmployee?.tongoPublicKey && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-3 pt-6 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                      Company Tongo Key
+                    </label>
+                    <span className="privacy-badge text-[9px] py-0 px-1.5">
+                      <EyeOff size={8} /> Encrypted
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-medium">
+                    Not stored
+                  </div>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Used to build the encrypted transfer proof. Never stored or transmitted.
+                </p>
+                <div className="relative">
+                  <input
+                    type={showKey ? "text" : "password"}
+                    value={companyKey}
+                    onChange={(e) => setCompanyKey(e.target.value)}
+                    placeholder="0x..."
+                    className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-lg pl-4 pr-10 py-3 text-[13px] font-mono text-[var(--privacy)] focus-ring placeholder:text-[var(--text-muted)]"
+                    style={{
+                      boxShadow: companyKey ? "0 0 12px rgba(62,207,142,0.08)" : undefined,
+                      borderColor: companyKey ? "var(--privacy-border)" : undefined,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+                  >
+                    {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Action */}
-        <div className="pt-6">
+        {/* Result feedback */}
+        <AnimatePresence>
+          {(txHash || error) && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`p-4 rounded-lg border flex items-start gap-3 ${
+                txHash
+                  ? "bg-[rgba(62,207,142,0.06)] border-[var(--privacy-border)]"
+                  : "bg-[rgba(239,68,68,0.06)] border-[rgba(239,68,68,0.2)]"
+              }`}
+            >
+              {txHash ? (
+                <CheckCircle2 size={16} className="text-[var(--privacy)] mt-0.5 shrink-0" />
+              ) : (
+                <AlertCircle size={16} className="text-[var(--status-error)] mt-0.5 shrink-0" />
+              )}
+              <div className="text-[13px]">
+                {txHash ? (
+                  <span className="text-[var(--privacy)]">
+                    Transfer submitted: <span className="font-mono text-[12px]">{txHash.slice(0, 12)}...{txHash.slice(-6)}</span>
+                  </span>
+                ) : (
+                  <span className="text-[var(--status-error)]">{error}</span>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <CalldataPreview calldata={builtCalldata} />
+
+        {/* Submit */}
+        <div className="pt-4">
           <button
-            disabled={!selectedEmployee || submitting}
-            onClick={handleTransfer}
-            className="w-full btn-primary py-3 flex justify-center items-center"
+            disabled={!selectedEmployee || !amountValid || submitting}
+            onClick={() => void confirm()}
+            className="w-full btn-primary py-3.5 text-[14px] flex justify-center items-center gap-2"
           >
-            {submitting ? "Executing..." : "Confirm Transfer"}
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Executing...
+              </>
+            ) : (
+              <>
+                {canPrivate ? <Lock size={14} /> : <ArrowUpRight size={14} />}
+                {canPrivate ? "Confirm Confidential Transfer" : "Confirm Transfer"}
+              </>
+            )}
           </button>
-          
+
           <div className="text-center mt-3 text-[11px] text-[var(--text-muted)] flex items-center justify-center gap-1.5">
             Executing via
-            <span className={`font-mono ${walletType === "starkzap" ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
-               {isConnected ? walletName : "None"}
+            <span
+              className={`font-mono ${
+                walletType === "starkzap"
+                  ? "text-[var(--accent-cyan)]"
+                  : "text-[var(--text-secondary)]"
+              }`}
+            >
+              {isConnected ? walletName : "None"}
             </span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Col 3: Live Summary Panel */}
-      <div className="card-fintech p-6 space-y-6 sticky top-8 bg-[var(--bg-base)] md:bg-transparent border-t border-[var(--border)] md:border-none md:p-0">
-         <h4 className="text-[11px] font-semibold tracking-[0.06em] uppercase text-[var(--text-muted)]">Live Summary</h4>
-         
-         {!selectedEmployee ? (
-           <div className="text-[13px] text-[var(--text-muted)] pt-4">Awaiting details...</div>
-         ) : (
-           <div className="space-y-4">
-              <div>
-                <div className="text-[11px] text-[var(--text-muted)] mb-1">To</div>
-                <div className="text-[13px] font-medium">{selectedEmployee.name}</div>
-              </div>
-              
-              <div>
-                <div className="text-[11px] text-[var(--text-muted)] mb-1">Amount</div>
-                <div className="font-mono text-[14px]">{amount || "0.00"} ETH</div>
-              </div>
+      {/* Sidebar Summary */}
+      <motion.div
+        initial={{ opacity: 0, x: 15 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+        className="card-glass p-6 space-y-6 sticky top-8"
+      >
+        <h4 className="text-[11px] font-bold tracking-[0.1em] uppercase text-[var(--text-muted)]">
+          Live Summary
+        </h4>
 
-              <div>
-                <div className="text-[11px] text-[var(--text-muted)] mb-2">Path</div>
-                {pathInfo.path === "tongo" ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-[6px] bg-[var(--accent)]/10 border border-[var(--accent)]/20">
-                      <Lock size={12} className="text-[var(--accent)] shrink-0" />
-                      <span className="text-[12px] font-medium text-[var(--accent)]">{pathInfo.label}</span>
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">{pathInfo.sublabel}</div>
+        {!selectedEmployee ? (
+          <div className="text-[13px] text-[var(--text-muted)] pt-4">Awaiting details...</div>
+        ) : (
+          <div className="space-y-5">
+            <div>
+              <div className="text-[11px] text-[var(--text-muted)] mb-1">To</div>
+              <div className="text-[14px] font-medium">{selectedEmployee.name}</div>
+              <div className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">
+                {selectedEmployee.walletAddress.slice(0, 8)}...{selectedEmployee.walletAddress.slice(-6)}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] text-[var(--text-muted)] mb-1">Amount</div>
+              <div className="font-mono text-[18px] font-semibold gradient-text">
+                {amount || "0.00"} ETH
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] text-[var(--text-muted)] mb-2">Transfer Path</div>
+              {pathInfo.path === "tongo" ? (
+                <div className="space-y-2">
+                  <div
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg animate-privacy-pulse"
+                    style={{
+                      background: "var(--privacy-muted)",
+                      border: "1px solid var(--privacy-border)",
+                    }}
+                  >
+                    <Lock size={13} className="text-[var(--privacy)] shrink-0" />
+                    <span className="text-[12px] font-semibold text-[var(--privacy)]">
+                      {pathInfo.label}
+                    </span>
                   </div>
-                ) : pathInfo.path === "standard" ? (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 px-2 py-1.5 rounded-[6px] bg-[var(--bg-elevated)] border border-[var(--border)]">
-                      <ArrowUpRight size={12} className="text-[var(--text-secondary)] shrink-0" />
-                      <span className="text-[12px] font-medium text-[var(--text-secondary)]">{pathInfo.label}</span>
-                    </div>
-                    <div className="text-[11px] text-[var(--text-muted)]">{pathInfo.sublabel}</div>
-                    {pathInfo.missingItems.length > 0 && (
-                      <details className="mt-2">
-                        <summary className="text-[11px] text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-secondary)] select-none">
-                          What&apos;s needed for confidential?
-                        </summary>
-                        <ul className="mt-1 ml-3 text-[11px] text-[var(--text-muted)] list-disc space-y-0.5">
-                          {pathInfo.missingItems.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    {pathInfo.sublabel}
                   </div>
-                ) : (
-                  <div className="text-[12px] text-[var(--text-muted)]">{pathInfo.label}</div>
-                )}
-              </div>
-
-              <CalldataPreview calldata={builtCalldata} />
-           </div>
-         )}
-      </div>
+                </div>
+              ) : pathInfo.path === "standard" ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <ArrowUpRight size={13} className="text-[var(--text-secondary)] shrink-0" />
+                    <span className="text-[12px] font-medium text-[var(--text-secondary)]">
+                      {pathInfo.label}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    {pathInfo.sublabel}
+                  </div>
+                  {pathInfo.missingItems.length > 0 && (
+                    <details className="mt-2">
+                      <summary className="text-[11px] text-[var(--accent-cyan)] cursor-pointer hover:underline select-none">
+                        Requirements for confidential
+                      </summary>
+                      <ul className="mt-1.5 ml-3 text-[11px] text-[var(--text-muted)] list-disc space-y-1">
+                        {pathInfo.missingItems.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[12px] text-[var(--text-muted)]">
+                  {pathInfo.label}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 }

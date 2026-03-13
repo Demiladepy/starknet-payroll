@@ -6,6 +6,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
 
 type ToastKind = "success" | "error" | "warning" | "info";
 type ToastMessage = { id: number; text: string; kind: ToastKind };
@@ -16,7 +18,14 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const AUTO_DISMISS_MS = 4000;
+const AUTO_DISMISS_MS = 4500;
+
+const kindConfig = {
+  success: { color: "var(--status-success)", Icon: CheckCircle2 },
+  error: { color: "var(--status-error)", Icon: AlertCircle },
+  warning: { color: "var(--status-pending)", Icon: AlertTriangle },
+  info: { color: "var(--status-info)", Icon: Info },
+};
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<ToastMessage | null>(null);
@@ -33,26 +42,36 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      {message && (
-        <div className="fixed bottom-5 left-1/2 z-[100] -translate-x-1/2" aria-live="polite">
-          <div
-            className="max-w-[640px] rounded-[6px] border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 text-[13px] text-[var(--text-primary)] shadow-xl"
-            style={{
-              borderLeft: `2px solid ${
-                message.kind === "success"
-                  ? "var(--status-success)"
-                  : message.kind === "warning"
-                    ? "var(--status-pending)"
-                    : message.kind === "error"
-                      ? "var(--status-error)"
-                      : "var(--status-info)"
-              }`,
-            }}
-          >
-            {message.text}
-          </div>
-        </div>
-      )}
+      <div className="fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 pointer-events-none">
+        <AnimatePresence>
+          {message && (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] }}
+              className="pointer-events-auto"
+            >
+              <div
+                className="max-w-[640px] rounded-xl border border-[var(--border)] px-4 py-3.5 text-[13px] text-[var(--text-primary)] shadow-2xl flex items-center gap-3"
+                style={{
+                  background: "var(--bg-elevated)",
+                  backdropFilter: "blur(16px)",
+                  borderLeft: `3px solid ${kindConfig[message.kind].color}`,
+                  boxShadow: `0 0 20px rgba(0,0,0,0.3), 0 0 40px ${kindConfig[message.kind].color}15`,
+                }}
+              >
+                {(() => {
+                  const { Icon, color } = kindConfig[message.kind];
+                  return <Icon size={16} style={{ color }} className="shrink-0" />;
+                })()}
+                <span>{message.text}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </ToastContext.Provider>
   );
 }

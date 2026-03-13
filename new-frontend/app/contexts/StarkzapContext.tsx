@@ -53,7 +53,11 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
     try {
       // STEP 1: Dynamic import — avoids SSR crash
       const starkzapModule = await import("starkzap");
-      const { StarkZap, StarkSigner } = starkzapModule;
+      // Handle both named exports and default export patterns
+      const StarkZap = starkzapModule.StarkZap ?? (starkzapModule as any).default?.StarkZap ?? (starkzapModule as any).default;
+      const StarkSigner = starkzapModule.StarkSigner ?? (starkzapModule as any).default?.StarkSigner;
+      if (!StarkZap || typeof StarkZap !== "function") throw new Error("StarkZap constructor not found in SDK. Run: npm install starkzap@latest");
+      if (!StarkSigner || typeof StarkSigner !== "function") throw new Error("StarkSigner constructor not found in SDK. Run: npm install starkzap@latest");
 
       // STEP 2: Create SDK instance (reuse across reconnects)
       const network = (import.meta.env.VITE_STARKNET_NETWORK as any) || "sepolia";

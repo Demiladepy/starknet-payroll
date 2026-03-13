@@ -63,12 +63,18 @@ export async function buildPrivateTransferCalls(params: {
     const tongoSdk = await import("@fatsolutions/tongo-sdk");
     const { RpcProvider } = await import("starknet");
 
+    // Resolve Account constructor from various export patterns
+    const TongoAccount = (tongoSdk as any).Account ?? (tongoSdk as any).default?.Account;
+    if (!TongoAccount || typeof TongoAccount !== "function") {
+      throw new Error("Tongo Account class not found in SDK. Run: npm install @fatsolutions/tongo-sdk@latest");
+    }
+
     const rpcUrl =
       import.meta.env.VITE_STARKNET_RPC_URL ||
       "https://starknet-sepolia.public.blastapi.io";
     const provider = new RpcProvider({ nodeUrl: rpcUrl });
 
-    const account = new tongoSdk.Account(
+    const account = new TongoAccount(
       senderPrivateKey.startsWith("0x")
         ? BigInt(senderPrivateKey)
         : senderPrivateKey,
@@ -76,7 +82,7 @@ export async function buildPrivateTransferCalls(params: {
       provider
     );
 
-    const toPubKey = hexToPubKey(tongoSdk, recipientPublicKey);
+    const toPubKey = hexToPubKey(tongoSdk as any, recipientPublicKey);
     const transferOp = await account.transfer({
       amount,
       to: toPubKey,
