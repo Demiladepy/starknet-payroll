@@ -69,12 +69,17 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
       }
       const sdk = sdkRef.current;
 
-      // STEP 3: Random private key for demo signer
-      // 31 bytes to stay within Stark curve order
-      const randomBytes = new Uint8Array(31);
-      crypto.getRandomValues(randomBytes);
-      const privateKey = "0x" + Array.from(randomBytes)
-        .map((b) => b.toString(16).padStart(2, "0")).join("");
+      // STEP 3: Persistent private key for demo signer
+      // Reuse key from sessionStorage so identity is stable within a session
+      const STORAGE_KEY = "starkzap_demo_pk";
+      let privateKey = sessionStorage.getItem(STORAGE_KEY);
+      if (!privateKey) {
+        const randomBytes = new Uint8Array(31); // 31 bytes to stay within Stark curve order
+        crypto.getRandomValues(randomBytes);
+        privateKey = "0x" + Array.from(randomBytes)
+          .map((b) => b.toString(16).padStart(2, "0")).join("");
+        sessionStorage.setItem(STORAGE_KEY, privateKey);
+      }
       const signer = new StarkSigner(privateKey);
 
       // STEP 4: Connect using connectWallet() — NOT onboard()
@@ -129,6 +134,7 @@ export function StarkzapProvider({ children }: { children: ReactNode }) {
     setAddress(null);
     setIsConnected(false);
     setError(null);
+    sessionStorage.removeItem("starkzap_demo_pk");
   }, []);
 
   const clearError = useCallback(() => setError(null), []);

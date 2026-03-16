@@ -38,7 +38,7 @@ function CalldataPreview({ calldata }: { calldata: unknown[] | null }) {
 
 export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { employees, addTransfer } = useDashboardStore();
-  const { address: walletAddress, type: walletType, execute, walletName, isConnected } = useActiveWallet();
+  const { address: walletAddress, type: walletType, execute, walletName, isConnected, canExecute } = useActiveWallet();
   const { toast } = useToast();
 
   const [selectedEmpId, setSelectedEmpId] = useState("");
@@ -100,6 +100,12 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
         if (!walletAddress) {
           setError("Wallet address required for confidential transfer.");
           toast("Wallet address required for confidential transfer.", "error");
+          setSubmitting(false);
+          return;
+        }
+        if (!canExecute) {
+          setError("Connected wallet cannot execute transactions. StarkZap demo signer has no funds — connect an injected wallet (Argent X / Braavos) to execute on-chain transfers.");
+          toast("StarkZap demo wallet cannot execute transfers. Connect a funded wallet.", "error");
           setSubmitting(false);
           return;
         }
@@ -351,6 +357,12 @@ export default function NewTransfer({ onNavigate }: { onNavigate: (id: string) =
               {isConnected ? walletName : "None"}
             </span>
           </div>
+          {isConnected && !canExecute && canPrivate && (
+            <div className="text-center mt-2 text-[11px] text-[var(--status-pending)]">
+              <AlertCircle size={11} className="inline mr-1" />
+              StarkZap demo signer cannot execute on-chain transfers. Connect Argent X or Braavos.
+            </div>
+          )}
         </div>
       </motion.div>
 
